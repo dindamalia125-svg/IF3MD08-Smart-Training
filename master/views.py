@@ -25,7 +25,7 @@ def _diff(instance_before, form, labels):
 @super_admin_required
 def proses_list(request, pk=None):
     instance = get_object_or_404(Proses, pk=pk) if pk else None
-    show_form = pk is not None or request.GET.get("tambah") or request.method == "POST"
+    show_form = show_form = pk is not None or request.resolver_match.url_name == "proses_add" or request.method == "POST"
     form = None
     if request.method == "POST":
         before = {f: getattr(instance, f) for f in ("nama", "target_harian", "durasi_maks_hari")} if instance else {}

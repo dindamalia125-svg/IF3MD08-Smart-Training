@@ -56,7 +56,7 @@ def logout_view(request):
 def user_list(request, pk=None):
     """Daftar akun Trainer + panel Tambah/Ubah di sisi kanan."""
     instance = get_object_or_404(User, pk=pk, role=User.Role.TRAINER) if pk else None
-    show_form = pk is not None or request.GET.get("tambah") or request.method == "POST"
+    show_form =show_form = pk is not None or request.resolver_match.url_name == "user_add" or request.method == "POST"
     form = None
     if request.method == "POST":
         form = TrainerForm(request.POST, instance=instance)
