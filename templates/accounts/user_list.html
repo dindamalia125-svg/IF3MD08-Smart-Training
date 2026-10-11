@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Manajemen Pengguna{% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Daftar Akun Trainer</h1>
+<div class="toolbar">
+  <form method="get" class="toolbar" style="margin:0">
+    <input type="text" name="q" value="{{ q }}" placeholder="🔍 Cari nama atau username" style="width:260px">
+    <select name="status" style="width:150px" onchange="this.form.submit()">
+      <option value="">Status: Semua</option>
+      <option value="aktif" {% if status == 'aktif' %}selected{% endif %}>Aktif</option>
+      <option value="nonaktif" {% if status == 'nonaktif' %}selected{% endif %}>Nonaktif</option>
+    </select>
+  </form>
+  <span class="sp"></span>
+  <a class="btn primary" href="{% url 'accounts:user_add' %}">+ Tambah Trainer</a>
+</div>
+<div class="row">
+  <div class="col" style="flex:2 1 520px">
+    <table class="t">
+      <thead><tr><th>Nama</th><th>Username</th><th>Email</th><th>Status</th><th>Aksi</th></tr></thead>
+      <tbody>
+      {% for u in page %}
+        <tr>
+          <td>{{ u.nama_tampil }}</td><td>{{ u.username }}</td><td>{{ u.email }}</td>
+          <td>{% if u.is_active %}<span class="badge ok">Aktif</span>{% else %}<span class="badge off">Nonaktif</span>{% endif %}</td>
+          <td>
+            <a href="{% url 'accounts:user_edit' u.pk %}">Ubah</a> ·
+            <form class="inline" method="post" action="{% url 'accounts:user_toggle' u.pk %}">{% csrf_token %}
+              <button class="btn link" type="submit">{% if u.is_active %}Nonaktifkan{% else %}Aktifkan{% endif %}</button></form>
+          </td>
+        </tr>
+      {% empty %}<tr><td colspan="5" class="muted">Data tidak ditemukan</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    {% include "partials/pagination.html" with unit="akun Trainer" %}
+  </div>
+  {% if form %}
+  <div class="col card" style="flex:1 1 360px">
+    <b>{% if editing %}Ubah{% else %}Tambah{% endif %} Akun Trainer</b>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.errors %}<div class="alert error">⚠ Periksa kembali isian Anda.</div>{% endif %}
+      <label for="{{ form.nama_lengkap.id_for_label }}">Nama Lengkap</label>{{ form.nama_lengkap }}
+      {% for e in form.nama_lengkap.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      <label for="{{ form.username.id_for_label }}">Username</label>{{ form.username }}
+      {% for e in form.username.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      <label for="{{ form.email.id_for_label }}">Email</label>{{ form.email }}
+      {% for e in form.email.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      <label for="{{ form.password.id_for_label }}">Kata Sandi{% if editing %} <span class="muted">(kosongkan bila tidak diubah)</span>{% endif %}</label>{{ form.password }}
+      {% for e in form.password.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400"><input type="checkbox" name="is_active" {% if form.is_active.value %}checked{% endif %}> Akun aktif</label>
+      <div class="actions"><a class="btn" href="{% url 'accounts:user_list' %}">Batal</a><button class="btn primary" type="submit">Simpan</button></div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

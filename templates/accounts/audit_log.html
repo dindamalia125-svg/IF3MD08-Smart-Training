@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Riwayat Aktivitas Sistem</h1>
+<form method="get" class="toolbar" style="align-items:flex-end">
+  <div><label>Dari Tanggal</label><input type="date" name="dari" value="{{ dari }}"></div>
+  <div><label>Sampai Tanggal</label><input type="date" name="sampai" value="{{ sampai }}"></div>
+  <div><label>Nama Trainer</label>
+    <select name="trainer"><option value="">Semua Trainer</option>
+      {% for t in trainers %}<option value="{{ t }}" {% if t == trainer %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select></div>
+  <div><label>Jenis Aktivitas</label>
+    <select name="jenis"><option value="">Semua aktivitas</option>
+      {% for a in aktivitas_list %}<option value="{{ a }}" {% if a == jenis %}selected{% endif %}>{{ a }}</option>{% endfor %}
+    </select></div>
+  <button class="btn primary" type="submit">Terapkan Filter</button>
+  <a class="btn" href="{% url 'accounts:audit_log' %}">Reset</a>
+</form>
+{% if page.paginator.count %}
+<table class="t">
+  <thead><tr><th>Waktu</th><th>Pengguna</th><th>Aktivitas</th><th>Objek</th><th>Keterangan</th></tr></thead>
+  <tbody>{% for a in page %}
+    <tr><td>{{ a.waktu|date:"d M Y H:i" }}</td><td>{{ a.username|default:"-" }}</td><td>{{ a.aktivitas }}</td><td>{{ a.objek }}</td><td>{{ a.keterangan }}</td></tr>
+  {% endfor %}</tbody>
+</table>
+{% include "partials/pagination.html" with unit="aktivitas" %}
+{% else %}
+<div class="alert error" role="alert">⚠ Data tidak ditemukan — tidak ada aktivitas pada filter yang dipilih.</div>
+{% endif %}
+<div class="alert info">Catatan log bersifat permanen dan tidak dapat diubah.</div>
+{% endblock %}

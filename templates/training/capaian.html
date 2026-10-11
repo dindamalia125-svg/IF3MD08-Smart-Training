@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Input Capaian{% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Input Capaian Harian</h1>
+<div class="row">
+  <form method="post" class="col card" style="flex:1 1 380px;max-width:430px" novalidate>{% csrf_token %}
+    <label for="id_trainee">Trainee</label>
+    <select id="id_trainee" name="trainee">
+      <option value="">Cari No. Badge atau nama…</option>
+      {% for t in form.fields.trainee.queryset %}<option value="{{ t.pk }}" {% if sel_trainee.pk == t.pk %}selected{% endif %}>{{ t.badge }} — {{ t.nama }}</option>{% endfor %}
+    </select>
+    <label for="id_proses">Kode Proses Kerja</label>
+    <select id="id_proses" name="proses">
+      <option value="">Pilih proses…</option>
+      {% for p in proses_all %}<option value="{{ p.pk }}" data-target="{{ p.target_harian }}" data-durasi="{{ p.durasi_maks_hari }}" {% if sel_proses.pk == p.pk %}selected{% endif %}>{{ p.kode }} - {{ p.nama }}</option>{% endfor %}
+    </select>
+    <div class="alert info" id="info-proses">{% if sel_proses %}Target harian {{ sel_proses.target_harian }} pcs · Durasi maks. training {{ sel_proses.durasi_maks_hari }} hari (dari master proses){% else %}Pilih proses untuk melihat target harian dan durasi maksimal (dari master proses){% endif %}</div>
+    <label for="id_tanggal">Tanggal</label>
+    <input id="id_tanggal" type="date" name="tanggal" value="{{ form.tanggal.value|date:'Y-m-d'|default:form.tanggal.value }}">
+    <div class="grid2">
+      <div><label for="id_output">Output Konten</label><input id="id_output" type="number" name="output" min="0" value="{{ form.output.value|default_if_none:'' }}"></div>
+      <div><label for="id_reject">Jumlah Reject</label><input id="id_reject" type="number" name="reject" min="0" value="{{ form.reject.value|default_if_none:'' }}"></div>
+    </div>
+    {% if error %}<div class="field-error" role="alert" style="margin-top:12px">⚠ {{ error }}</div>{% endif %}
+    {% if konfirmasi_timpa %}
+      <div class="alert warning" role="alert">⚠ Capaian trainee pada tanggal dan proses ini sudah ada. Timpa data?
+        <button class="btn sm primary" type="submit" name="timpa" value="1">Ya</button>
+        <a class="btn sm" href="{% url 'training:capaian' %}">Batal</a></div>
+    {% endif %}
+    <div class="actions"><a class="btn" href="{% url 'training:capaian' %}">Batal</a><button class="btn primary" type="submit">Simpan</button></div>
+  </form>
+
+  <div class="col">
+    {% if sel_trainee %}
+    <h2 class="sec" style="margin-top:0"># Riwayat Capaian — {{ sel_trainee.nama }} ({{ sel_trainee.badge }})</h2>
+    <table class="t">
+      <thead><tr><th>Tanggal</th><th>Proses</th><th>Output</th><th>Reject</th><th>Dicatat Oleh</th></tr></thead>
+      <tbody>{% for c in riwayat %}<tr><td>{{ c.tanggal|date:"d M Y" }}</td><td>{{ c.proses.nama }}</td><td>{{ c.output }}</td><td>{{ c.reject }}</td><td>{{ c.dicatat_oleh.username|default:"-" }}</td></tr>
+      {% empty %}<tr><td colspan="5" class="muted">Belum ada capaian.</td></tr>{% endfor %}</tbody>
+    </table>
+    {% if progress is not None %}
+    <h2 class="sec"># Progress Terhadap Target</h2>
+    <div class="bar"><i style="width:{{ progress_cap }}%">{{ progress }}% dari target harian</i></div>
+    <p class="muted">Progress trainee pada dashboard diperbarui setelah data disimpan</p>{% endif %}
+    {% else %}<div class="empty">Pilih trainee untuk melihat riwayat capaian dan progress.</div>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/capaian.js' %}"></script>{% endblock %}

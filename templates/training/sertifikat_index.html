@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Sertifikat{% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Evaluasi Kualifikasi &amp; Sertifikat</h1>
+<p class="muted">Pilih trainee untuk mengevaluasi kualifikasi dan mencetak sertifikat. Anda juga bisa memulai dari <a href="{% url 'training:penelusuran' %}">Penelusuran Trainee</a>.</p>
+<table class="t">
+  <thead><tr><th>No. Badge</th><th>Nama</th><th>Shift</th><th>Status</th><th>Aksi</th></tr></thead>
+  <tbody>{% for t in trainees %}<tr><td>{{ t.badge }}</td><td>{{ t.nama }}</td><td>{{ t.shift.kode|default:"-" }}</td><td>{{ t.status_label }}</td>
+    <td><a href="{% url 'training:evaluasi' t.pk %}">Evaluasi →</a></td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">Belum ada trainee. Tambahkan lewat Input Manpower (AI).</td></tr>{% endfor %}</tbody>
+</table>
+<h2 class="sec"># Sertifikat Terbaru</h2>
+<table class="t">
+  <thead><tr><th>No. Sertifikat</th><th>Nama</th><th>Proses</th><th>Tanggal</th><th>Dicetak Oleh</th><th>PDF</th></tr></thead>
+  <tbody>{% for s in recent %}<tr><td>{{ s.nomor }}</td><td>{{ s.trainee.nama }}</td><td>{{ s.proses.nama }}</td><td>{{ s.tanggal|date:"d M Y" }}</td><td>{{ s.dicetak_oleh.username|default:"-" }}</td>
+    <td><a href="{% url 'training:sertifikat_pdf' %}?ids={{ s.pk }}" target="_blank" rel="noopener">Buka</a></td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">Belum ada sertifikat.</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

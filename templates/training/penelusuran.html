@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Penelusuran Trainee{% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Penelusuran Trainee</h1>
+{% include "training/_search.html" %}
+{% if tidak_ditemukan %}<div class="alert error" role="alert">⚠ Data trainee tidak ditemukan. Periksa kembali Nomor Badge atau Nama yang diketik.</div>{% endif %}
+{% if results %}
+<h2 class="sec"># {{ results|length }} trainee cocok — pilih salah satu</h2>
+<table class="t">
+  <thead><tr><th>No. Badge</th><th>Nama</th><th>Shift</th><th>Aksi</th></tr></thead>
+  <tbody>{% for t in results %}<tr><td>{{ t.badge }}</td><td>{{ t.nama }}</td><td>{{ t.shift.kode|default:"-" }}</td>
+    <td><a href="{% url 'training:trainee_profil' t.pk %}?q={{ q|urlencode }}">Pilih →</a></td></tr>{% endfor %}</tbody>
+</table>
+{% endif %}
+{% endblock %}

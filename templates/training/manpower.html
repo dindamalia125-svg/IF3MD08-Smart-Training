@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Input Manpower (AI){% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Input Data Manpower dengan Parsing AI</h1>
+<form method="post" novalidate>{% csrf_token %}
+  <label for="teks">Tempel daftar manpower dari HR</label>
+  <textarea id="teks" name="teks" rows="6" placeholder="Andi Pratama - TR-0142 - A&#10;Maya Putri - TR-0098 - B&#10;Rudi Hartono - TR-0177 - 3x2">{{ teks }}</textarea>
+  <p class="muted">Kode shift yang dikenali: {{ shift_codes|join:", " }}</p>
+  {% if error %}<div class="alert error" role="alert">⚠ {{ error }}</div>{% endif %}
+  <div class="right"><button class="btn primary" type="submit" name="action" value="proses">✨ Proses dengan AI</button></div>
+</form>
+
+{% if rows %}
+<h2 class="sec"># Hasil Parsing AI (rekomendasi, dapat diperbaiki)</h2>
+<form method="post" novalidate>{% csrf_token %}
+  <input type="hidden" name="teks" value="{{ teks }}">
+  <table class="t">
+    <thead><tr><th style="width:40px">No</th><th>Nama</th><th>Nomor Badge</th><th>Kode Shift</th><th>Status Baris</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr {% if r.status == 'gagal' or r.status == 'duplikat' %}class="hl"{% endif %}>
+        <td>{{ forloop.counter }}</td>
+        <td><input type="text" name="nama" value="{{ r.nama }}" aria-label="Nama baris {{ forloop.counter }}"></td>
+        <td><input type="text" name="badge" value="{{ r.badge }}" aria-label="Badge baris {{ forloop.counter }}"></td>
+        <td><input type="text" name="shift" value="{{ r.shift }}" list="shift-codes" aria-label="Shift baris {{ forloop.counter }}"></td>
+        <td>{% if r.status == 'ok' %}<span class="badge ok">OK</span>{% elif r.status == 'tersimpan' %}<span class="badge ok">✔ Tersimpan</span>
+            {% else %}<span class="badge {% if r.status == 'duplikat' %}bad{% else %}warn{% endif %}">⚠ {{ r.pesan }}</span>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+  </table>
+  <datalist id="shift-codes">{% for c in shift_codes %}<option value="{{ c }}">{% endfor %}</datalist>
+  {% if saved is not None %}
+    <div class="alert success">✔ {{ saved }} baris berhasil disimpan{% if rejected %}, {{ rejected }} baris ditolak{% endif %}. Aktivitas tercatat di audit log.</div>
+  {% else %}
+    <div class="actions"><a class="btn" href="{% url 'training:manpower' %}">Batal</a><button class="btn primary" type="submit" name="action" value="simpan">Simpan Data</button></div>
+    <p class="muted">Baris yang gagal diparsing atau memiliki Nomor Badge duplikat akan ditolak saat disimpan. Perbaiki isian lalu simpan.</p>
+  {% endif %}
+</form>
+{% endif %}
+{% endblock %}

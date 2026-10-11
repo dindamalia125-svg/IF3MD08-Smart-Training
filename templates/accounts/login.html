@@ -1,0 +1,24 @@
+{% load static %}<!doctype html>
+<html lang="id">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Masuk · Smart Training Analytics</title><link rel="stylesheet" href="{% static 'css/app.css' %}"></head>
+<body class="login">
+<form class="login-card" method="post" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <div class="logo">STA</div>
+  <h1>Smart Training Analytics Platform</h1>
+  <p class="sub">Masuk sebagai Super Admin atau Trainer</p>
+  {% if error %}<div class="alert error" role="alert">⚠ {{ error }}</div>{% endif %}
+  <label for="id_identifier">Username / Email</label>
+  <input id="id_identifier" type="text" name="identifier" placeholder="username atau email" value="{{ form.identifier.value|default_if_none:'' }}" autofocus autocomplete="username">
+  <label for="id_password">Kata Sandi</label>
+  <input id="id_password" type="password" name="password" placeholder="••••••••" autocomplete="current-password">
+  <div class="meta">
+    <label><input type="checkbox" name="remember"> Ingat saya</label>
+    <a href="#" title="Hubungi Super Admin untuk mengatur ulang kata sandi">Lupa kata sandi?</a>
+  </div>
+  <button class="btn primary" type="submit">Masuk</button>
+  <p class="foot">Akses hanya untuk Super Admin dan Trainer</p>
+</form>
+</body></html>

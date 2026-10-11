@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Master Proses{% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Master Data Proses Kerja</h1>
+<div class="toolbar"><span class="sp"></span><a class="btn primary" href="{% url 'master:proses_add' %}">+ Tambah Proses</a></div>
+<div class="row">
+  <div class="col" style="flex:2 1 520px">
+    <table class="t">
+      <thead><tr><th>Kode Proses</th><th>Nama Proses</th><th>Target Harian</th><th>Durasi Maks. Training</th><th>Aksi</th></tr></thead>
+      <tbody>{% for p in page %}
+        <tr><td>{{ p.kode }}</td><td>{{ p.nama }}</td><td>{{ p.target_harian }} pcs</td><td>{{ p.durasi_maks_hari }} hari</td>
+          <td><a href="{% url 'master:proses_edit' p.pk %}">Ubah</a> ·
+            <form class="inline" method="post" action="{% url 'master:proses_delete' p.pk %}" onsubmit="return confirm('Hapus proses {{ p.kode }}?')">{% csrf_token %}<button class="btn link" type="submit">Hapus</button></form></td></tr>
+      {% empty %}<tr><td colspan="5" class="muted">Belum ada proses.</td></tr>{% endfor %}</tbody>
+    </table>
+    {% include "partials/pagination.html" with unit="proses" %}
+    <div class="alert info" style="margin-top:16px">Acuan standar ini dipakai pada Input Capaian Harian (target harian) dan peringatan masa training (durasi maksimal). Perubahan dicatat di audit log.</div>
+  </div>
+  {% if form %}
+  <div class="col card" style="flex:1 1 360px">
+    <b>{% if editing %}Ubah{% else %}Tambah{% endif %} Proses</b>
+    <form method="post" novalidate>{% csrf_token %}
+      <label for="{{ form.kode.id_for_label }}">Kode Proses</label>{{ form.kode }}
+      {% for e in form.kode.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      <label for="{{ form.nama.id_for_label }}">Nama Proses</label>{{ form.nama }}
+      {% for e in form.nama.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      <div class="grid2">
+        <div><label for="{{ form.target_harian.id_for_label }}">Target Harian</label>{{ form.target_harian }}</div>
+        <div><label for="{{ form.durasi_maks_hari.id_for_label }}">Durasi Maks. Training (hari)</label>{{ form.durasi_maks_hari }}</div>
+      </div>
+      {% for e in form.target_harian.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      {% for e in form.durasi_maks_hari.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      <div class="actions"><a class="btn" href="{% url 'master:proses_list' %}">Batal</a><button class="btn primary" type="submit">Simpan</button></div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

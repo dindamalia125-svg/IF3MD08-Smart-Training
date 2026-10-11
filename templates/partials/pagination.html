@@ -1,0 +1,6 @@
+<div class="pager">
+  <span>Menampilkan {{ page.start_index }}–{{ page.end_index }} dari {{ page.paginator.count }} {{ unit|default:"data" }}</span>
+  {% if page.has_previous %}<a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.previous_page_number }}">‹</a>{% endif %}
+  <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.next_page_number }}">›</a>{% endif %}
+</div>

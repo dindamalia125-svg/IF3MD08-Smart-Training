@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Evaluasi & Sertifikat{% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Evaluasi Kualifikasi &amp; Cetak Sertifikat — {{ t.nama }} ({{ t.badge }})</h1>
+<div class="row">
+  <form method="post" class="col" id="form-evaluasi" novalidate style="flex:1.2 1 480px">{% csrf_token %}
+    <table class="t">
+      <thead><tr><th>Proses</th><th>Target</th><th>Rata-rata Output</th><th>Rekomendasi AI</th><th>Verifikasi Trainer</th></tr></thead>
+      <tbody>{% for r in rows %}
+        <tr><td>{{ r.proses.nama }}</td><td>{{ r.target }}</td><td>{{ r.rata }}</td>
+          <td data-rek="{% if r.rekomendasi %}1{% else %}0{% endif %}">{% if r.rekomendasi %}✔ Qualified{% else %}✖ Belum qualified{% endif %}</td>
+          <td><label style="display:inline;font-weight:400"><input type="radio" name="verifikasi_{{ r.pt.pk }}" value="setuju" {% if r.verifikasi == 'setuju' %}checked{% endif %} {% if not r.rekomendasi %}disabled{% endif %}> Setuju</label>
+              &nbsp;<label style="display:inline;font-weight:400"><input type="radio" name="verifikasi_{{ r.pt.pk }}" value="tidak" {% if r.verifikasi != 'setuju' %}checked{% endif %}> Tidak</label></td></tr>
+      {% empty %}<tr><td colspan="5" class="muted">Trainee belum memiliki proses/capaian untuk dievaluasi.</td></tr>{% endfor %}</tbody>
+    </table>
+    <div class="alert info" style="margin-top:14px">Rekomendasi AI dievaluasi dari capaian dan standar proses. Trainer wajib memverifikasi sebelum sertifikat dapat dicetak.</div>
+    {% if tidak_layak or error_tidak_layak %}
+      <div class="alert error" id="msg-tidak-layak">⚠ Rekomendasi tidak disetujui / belum qualified → tombol Cetak Sertifikat dinonaktifkan</div>
+    {% endif %}
+    <div class="actions" style="justify-content:flex-start;align-items:center">
+      <button class="btn primary" type="submit" name="action" value="cetak" id="btn-cetak" {% if not bisa_cetak %}disabled{% endif %}>🖨 Cetak Sertifikat</button>
+      {% if cert_ids %}<a class="btn" href="{% url 'training:sertifikat_pdf' %}?ids={{ cert_ids }}&unduh=1">Unduh PDF</a>
+        <a class="btn" href="{% url 'training:sertifikat_pdf' %}?ids={{ cert_ids }}" target="_blank" rel="noopener">Buka di peramban</a>{% endif %}
+    </div>
+    {% if error_pdf %}<div class="alert error" role="alert">⚠ Gagal membuat PDF sertifikat. Silakan coba lagi.</div>{% endif %}
+  </form>
+
+  <div class="col" style="flex:1 1 360px">
+    <h2 class="sec" style="margin-top:0"># Pratinjau Sertifikat (template standar)</h2>
+    <div class="cert"><div class="in">
+      <div class="logo2">LOGO</div>
+      <h3>SERTIFIKAT KUALIFIKASI</h3>
+      <div class="muted">Diberikan kepada</div>
+      <div class="nm">{{ t.nama }}</div>
+      <div>{% if preview %}dinyatakan QUALIFIED pada proses {{ preview.proses.nama }} dengan hasil evaluasi sesuai standar{% else %}<span class="muted">Belum ada proses yang memenuhi syarat untuk dicetak</span>{% endif %}</div>
+      <div class="sign"><span>Trainer</span><div class="qr">QR</div><span>Super Admin</span></div>
+      <div class="muted" style="margin-top:12px">Nomor sertifikat dibuat otomatis saat dicetak</div>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/evaluasi.js' %}"></script>{% endblock %}

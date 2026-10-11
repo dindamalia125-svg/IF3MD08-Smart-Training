@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Laporan{% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Ekspor Laporan Rekapitulasi Training</h1>
+<div class="row">
+  <form method="post" class="col card" style="flex:1 1 360px;max-width:420px" id="form-ekspor" novalidate>{% csrf_token %}
+    <label>Jenis Rekapitulasi</label>
+    <label style="font-weight:400;display:inline"><input type="radio" name="jenis" value="harian" {% if jenis == 'harian' %}checked{% endif %}> Harian</label> &nbsp;
+    <label style="font-weight:400;display:inline"><input type="radio" name="jenis" value="bulanan" {% if jenis == 'bulanan' %}checked{% endif %}> Bulanan</label>
+    <label for="periode_harian" id="lbl-periode">Periode (tanggal atau bulan)</label>
+    <input type="date" id="periode_harian" name="periode_harian" value="{{ periode_harian }}">
+    <input type="month" id="periode_bulanan" name="periode_bulanan" value="{{ periode_bulanan }}" hidden>
+    <label>Format File</label>
+    <label style="font-weight:400;display:inline"><input type="radio" name="format" value="xlsx" {% if format == 'xlsx' %}checked{% endif %}> Excel (.xlsx)</label> &nbsp;
+    <label style="font-weight:400;display:inline"><input type="radio" name="format" value="pdf" {% if format == 'pdf' %}checked{% endif %}> PDF</label>
+    {% if error %}<div class="alert error" role="alert" style="margin-top:14px">⚠ {{ error }}</div>{% endif %}
+    <div class="actions"><a class="btn" href="{% url 'reports:ekspor' %}">Batal</a><button class="btn primary" type="submit">Ekspor</button></div>
+    {% if siap %}
+      <div class="alert success">✔ Laporan siap diunduh</div>
+      <div class="card" style="padding:10px 14px">📄 {{ filename }} &nbsp; <a class="btn sm primary" href="{% url 'reports:unduh' %}?{{ unduh_qs }}">Unduh</a></div>
+    {% endif %}
+  </form>
+  <div class="col">
+    <h2 class="sec" style="margin-top:0"># Pratinjau Rekapitulasi Training {% if jenis == 'bulanan' %}Bulanan{% else %}Harian{% endif %}</h2>
+    <table class="t">
+      <thead><tr><th>Badge</th><th>Nama</th><th>Proses</th><th>Output</th><th>Reject</th><th>% Target</th></tr></thead>
+      <tbody>{% for r in rows %}<tr><td>{{ r.badge }}</td><td>{{ r.nama }}</td><td>{{ r.proses }}</td><td>{{ r.output }}</td><td>{{ r.reject }}</td><td>{{ r.persen }}%</td></tr>
+      {% empty %}<tr><td colspan="6" class="muted">Tidak ada data pada periode ini.</td></tr>{% endfor %}</tbody>
+    </table>
+    <p class="muted" style="margin-top:12px">Pratinjau menampilkan data periode yang dipilih; file hasil ekspor memuat rekapitulasi lengkap</p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/ekspor.js' %}"></script>{% endblock %}

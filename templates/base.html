@@ -1,0 +1,31 @@
+{% load static %}<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}STA{% endblock %} · Smart Training Analytics</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">STA</div>
+    {% if user.is_authenticated %}
+    <details class="user">
+      <summary><span class="avatar"></span><span>{{ user.username }}<br>{{ user.get_role_display|upper }}</span></summary>
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="btn sm" type="submit">Keluar</button></form>
+    </details>
+    {% endif %}
+  </header>
+  {% if nav_items %}
+  <nav class="tabs" aria-label="Menu utama">
+    {% for n in nav_items %}<a href="{{ n.url }}" class="{% if n.active %}active{% endif %}">{{ n.label }}</a>{% endfor %}
+  </nav>
+  <div class="greet"><b>Hi, {{ user.nama_tampil }}</b><span>🕗 {{ now|date:"h:i A" }} &nbsp;|&nbsp; {{ now|date:"l, d F Y" }}</span></div>
+  {% endif %}
+  {% include "partials/messages.html" %}
+  <main>{% block content %}{% endblock %}</main>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

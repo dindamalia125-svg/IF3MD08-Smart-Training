@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Profil {{ t.nama }}{% endblock %}
+{% block content %}
+<h1 class="title"><i class="dot"></i> Penelusuran Trainee</h1>
+{% include "training/_search.html" %}
+<div class="card" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+  <div class="avatar" style="width:70px;height:70px"></div>
+  <div style="flex:1">
+    <div style="font-size:18px;font-weight:700">{{ t.nama }}</div>
+    <div>No. Badge {{ t.badge }} · Shift {{ t.shift.kode|default:"-" }} · {{ t.lini.lokasi_lengkap|default:"Lini belum ditentukan" }}</div>
+    <div class="muted">{% if t.kontrak_berakhir %}Kontrak berakhir {{ t.kontrak_berakhir|date:"d M Y" }}{% else %}Kontrak belum diatur{% endif %} · Mulai training {{ t.mulai_training|date:"d M Y"|default:"-" }}</div>
+  </div>
+  <div>● Status: <span class="badge {% if t.status_label == 'Qualified' %}ok{% else %}warn{% endif %}">{{ t.status_label }}</span></div>
+</div>
+<div class="row">
+  <div class="col"><h2 class="sec"># Riwayat Shift</h2>
+    <table class="t"><thead><tr><th>Mulai</th><th>Selesai</th><th>Shift</th><th>Lini</th></tr></thead>
+      <tbody>{% for r in riwayat_shift %}<tr><td>{{ r.mulai|date:"d M Y" }}</td><td>{{ r.selesai|date:"d M Y"|default:"sekarang" }}</td><td>{{ r.shift.nama }}</td><td>{{ r.lini.nama|default:"-" }}</td></tr>
+      {% empty %}<tr><td colspan="4" class="muted">Belum ada riwayat shift.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="col"><h2 class="sec"># Proses yang Dikuasai</h2>
+    <table class="t"><thead><tr><th>Proses</th><th>Status Kelulusan</th><th>Tanggal</th></tr></thead>
+      <tbody>{% for p in proses_list %}<tr><td>{{ p.proses.nama }}</td>
+        <td>{% if p.status == 'QUALIFIED' %}● Qualified{% else %}○ Dalam training{% endif %}</td><td>{{ p.tanggal_qualified|date:"d M Y"|default:"-" }}</td></tr>
+      {% empty %}<tr><td colspan="3" class="muted">Belum ada proses.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+<div class="right" style="margin-top:16px"><a class="btn primary" href="{% url 'training:evaluasi' t.pk %}">Evaluasi &amp; Cetak Sertifikat →</a></div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Super Admin{% endblock %}
+{% block content %}
+<div class="kpis">
+  <div class="kpi"><b>{{ kpi.total }}</b><span>Total Trainee</span></div>
+  <div class="kpi"><b>{{ kpi.training }}</b><span>Sedang Training</span></div>
+  <div class="kpi"><b>{{ kpi.qualified }}</b><span>Trainee Qualified</span></div>
+  <div class="kpi"><b>{{ kpi.sertifikat }}</b><span>Sertifikat Terbit</span></div>
+</div>
+<div class="toolbar" style="margin-top:22px">
+  <h1 class="title" style="margin:0"><i class="dot"></i> Ringkasan Analitik Pelatihan {{ periode_label }}</h1><span class="sp"></span>
+  <form method="get"><select name="periode" onchange="this.form.submit()" aria-label="Periode">
+    {% for o in periode_options %}<option value="{{ o.value }}" {% if o.value == periode %}selected{% endif %}>Periode: {{ o.label }}</option>{% endfor %}
+  </select></form>
+</div>
+{% if not has_data %}
+<div class="empty">Belum ada data pelatihan untuk periode ini.<br>Dashboard akan terisi setelah Trainer menginput capaian harian.</div>
+{% else %}
+<div class="row">
+  <div class="col"><h2 class="sec"># Output &amp; Reject Harian</h2>
+    <div class="card chart">{% if ada_capaian_periode %}<canvas id="chartHarian"></canvas>{% else %}<span class="muted">Belum ada capaian pada periode ini.</span>{% endif %}</div></div>
+  <div class="col"><h2 class="sec"># Output per Proses Kerja</h2>
+    <div class="card chart">{% if ada_capaian_periode %}<canvas id="chartProses"></canvas>{% else %}<span class="muted">Belum ada capaian pada periode ini.</span>{% endif %}</div></div>
+</div>
+<h2 class="sec"># Penerbitan Sertifikat Terbaru</h2>
+<table class="t">
+  <thead><tr><th>No. Sertifikat</th><th>Nama Trainee</th><th>Proses</th><th>Diterbitkan Oleh</th><th>Tanggal</th></tr></thead>
+  <tbody>{% for s in sertifikat_terbaru %}
+    <tr><td>{{ s.nomor }}</td><td>{{ s.trainee.nama }}</td><td>{{ s.proses.nama }}</td><td>{{ s.dicetak_oleh.username|default:"-" }}</td><td>{{ s.tanggal|date:"d M Y" }}</td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">Belum ada sertifikat diterbitkan.</td></tr>{% endfor %}</tbody>
+</table>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if has_data and ada_capaian_periode %}
+{{ chart_harian|json_script:"d-harian" }}
+{{ chart_proses|json_script:"d-proses" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+  if(!window.Chart) return;
+  var h=JSON.parse(document.getElementById('d-harian').textContent), p=JSON.parse(document.getElementById('d-proses').textContent);
+  new Chart(document.getElementById('chartHarian'),{type:'line',data:{labels:h.labels,datasets:[
+    {label:'Output',data:h.output,borderColor:'#1f6fd0',tension:.25},{label:'Reject',data:h.reject,borderColor:'#d9422f',tension:.25}]},
+    options:{responsive:true,maintainAspectRatio:false}});
+  new Chart(document.getElementById('chartProses'),{type:'bar',data:{labels:p.labels,datasets:[{label:'Output',data:p.output,backgroundColor:'#9aa9bd'}]},
+    options:{responsive:true,maintainAspectRatio:false}});
+})();
+</script>
+{% endif %}
+{% endblock %}
