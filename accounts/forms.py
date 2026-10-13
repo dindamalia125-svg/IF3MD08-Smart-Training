@@ -1,24 +1,73 @@
 from django import forms
-
 from .models import User
 
 
 class LoginForm(forms.Form):
-    identifier = forms.CharField(max_length=254, strip=True)
-    password = forms.CharField(widget=forms.PasswordInput, strip=False)
-    remember = forms.BooleanField(required=False)
+    identifier = forms.CharField(
+        max_length=254,
+        strip=True,
+        label="Username / Email",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "username atau email",
+                "autocomplete": "username",
+            }
+        ),
+        error_messages={
+            "required": "Masukkan username atau email Anda."
+        }
+    )
+    
+    password = forms.CharField(
+        strip=False,
+        label="Kata Sandi",
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Masukkan kata sandi",
+                "autocomplete": "current-password",
+            }
+        ),
+        error_messages={
+            "required": "Masukkan kata sandi Anda."
+        }
+    )
+    
+    remember = forms.BooleanField(
+        required=False,
+        label="Ingat saya",
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "form-check-input"
+            }
+        )
+    )
 
 
 class TrainerForm(forms.Form):
-    """Form tambah/ubah akun Trainer (UC-02)."""
+    """Form tambah/ubah akun Trainer"""
 
-    nama_lengkap = forms.CharField(max_length=150, error_messages={"required": "Isi data dengan lengkap"})
-    username = forms.CharField(max_length=150, error_messages={"required": "Isi data dengan lengkap"})
-    email = forms.EmailField(
-        error_messages={"required": "Isi data dengan lengkap", "invalid": "Gunakan format email dengan benar"}
+    nama_lengkap = forms.CharField(
+        max_length=150, 
+        error_messages={"required": "Isi data dengan lengkap"}
     )
-    password = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False), min_length=8,
-                               error_messages={"min_length": "Kata sandi minimal 8 karakter"})
+    username = forms.CharField(
+        max_length=150, 
+        error_messages={"required": "Isi data dengan lengkap"}
+    )
+    email = forms.EmailField(
+        error_messages={
+            "required": "Isi data dengan lengkap", 
+            "invalid": "Gunakan format email dengan benar"
+        }
+    )
+    password = forms.CharField(
+        required=False, 
+        widget=forms.PasswordInput(render_value=False), 
+        min_length=8,
+        error_messages={"min_length": "Kata sandi minimal 8 karakter"}
+    )
     is_active = forms.BooleanField(required=False, initial=True)
 
     def __init__(self, *args, instance=None, **kwargs):
