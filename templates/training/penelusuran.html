@@ -5,11 +5,26 @@
 {% include "training/_search.html" %}
 {% if tidak_ditemukan %}<div class="alert error" role="alert">⚠ Data trainee tidak ditemukan. Periksa kembali Nomor Badge atau Nama yang diketik.</div>{% endif %}
 {% if results %}
-<h2 class="sec"># {{ results|length }} trainee cocok — pilih salah satu</h2>
+<h2 class="sec"># {{ judul_hasil }}{% if q %} — pilih salah satu{% endif %}</h2>
 <table class="t">
-  <thead><tr><th>No. Badge</th><th>Nama</th><th>Shift</th><th>Aksi</th></tr></thead>
-  <tbody>{% for t in results %}<tr><td>{{ t.badge }}</td><td>{{ t.nama }}</td><td>{{ t.shift.kode|default:"-" }}</td>
-    <td><a href="{% url 'training:trainee_profil' t.pk %}?q={{ q|urlencode }}">Pilih →</a></td></tr>{% endfor %}</tbody>
+  <thead><tr><th>No. Badge</th><th>Nama</th><th>Shift</th><th>Lini</th><th>Status</th><th>Aksi</th></tr></thead>
+  <tbody>{% for t in results %}<tr>
+    <td>{{ t.badge }}</td><td>{{ t.nama }}</td>
+    <td>
+      <form class="inline" method="post" action="{% url 'training:trainee_shift_update' t.pk %}">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <select name="shift" style="width:auto;padding:4px 6px" aria-label="Shift {{ t.nama }}">
+          {% if not t.shift %}<option value="">-</option>{% endif %}
+          {% for s in shifts %}<option value="{{ s.pk }}" {% if s.pk == t.shift_id %}selected{% endif %}>{{ s.kode }}</option>{% endfor %}
+        </select>
+        <button class="btn sm primary" type="submit">Simpan</button>
+      </form>
+    </td>
+    <td>{{ t.lini.nama|default:"-" }}</td>
+    <td>{{ t.status_label }}</td>
+    <td><a href="{% url 'training:trainee_profil' t.pk %}{% if q %}?q={{ q|urlencode }}{% endif %}">{% if q %}Pilih{% else %}Lihat profil{% endif %} →</a></td></tr>{% endfor %}</tbody>
 </table>
+{% if page %}{% include "partials/pagination.html" with unit="trainee" %}{% endif %}
 {% endif %}
+{% if not results and not q %}<div class="empty">Belum ada trainee. Tambahkan lewat Input Manpower (AI).</div>{% endif %}
 {% endblock %}

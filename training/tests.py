@@ -220,3 +220,35 @@ class EvaluasiTests(Base):
         # mencoba lagi berhasil
         r = self.client.post(self.url, {"action": "cetak", f"verifikasi_{self.pt_ok.pk}": "setuju"}, follow=True)
         self.assertContains(r, "Sertifikat berhasil dibuat")
+
+
+class PenelusuranListTests(Base):
+    def setUp(self):
+        super().setUp()
+        self.a = make_trainee("TR-0142", "Andi Pratama", self.shifts["A"], self.linis["Line 2"])
+        self.b = make_trainee("TR-0098", "Maya Putri", self.shifts["B"])
+
+    def test_empty_query_lists_all_trainees(self):
+        r = self.client.get(reverse("training:penelusuran"))
+        self.assertContains(r, "Seluruh karyawan (2)")
+        self.assertContains(r, "Andi Pratama")
+        self.assertContains(r, "Maya Putri")
+
+    def test_change_shift_updates_history_and_audit(self):
+        r = self.client.post(reverse("training:trainee_shift_update", args=[self.a.pk]),
+                             {"shift": self.shifts["C"].pk, "next": reverse("training:penelusuran")}, follow=True)
+        self.assertContains(r, "diubah dari A ke C")
+        self.a.refresh_from_db()
+        self.assertEqual(self.a.shift.kode, "C")
+        self.assertEqual(self.a.riwayat_shift.filter(selesai__isnull=True).count(), 1)
+        self.assertEqual(self.a.riwayat_shift.count(), 2)
+        self.assertTrue(AuditLog.objects.filter(objek="Shift trainee", keterangan__contains="A → C").exists())
+
+    def test_invalid_shift_rejected(self):
+        r = self.client.post(reverse("training:trainee_shift_update", args=[self.a.pk]), {"shift": 9999}, follow=True)
+        self.assertContains(r, "Pilih shift yang valid")
+        self.a.refresh_from_db()
+        self.assertEqual(self.a.shift.kode, "A")
+
+    def test_get_not_allowed(self):
+        self.assertEqual(self.client.get(reverse("training:trainee_shift_update", args=[self.a.pk])).status_code, 405)

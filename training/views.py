@@ -2,12 +2,15 @@ import re
 from datetime import timedelta
 
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from accounts.audit import log
 from accounts.decorators import trainer_required
@@ -148,9 +151,10 @@ def capaian(request):
 @trainer_required
 def penelusuran(request):
     q = request.GET.get("q", "").strip()
-    ctx = {"q": q}
+    ctx = {"q": q, "shifts": Shift.objects.all()}
+    base = Trainee.objects.select_related("shift", "lini")
     if q:
-        qs = Trainee.objects.filter(Q(badge__icontains=q) | Q(nama__icontains=q)).select_related("shift", "lini")
+        qs = base.filter(Q(badge__icontains=q) | Q(nama__icontains=q))
         exact = list(qs.filter(badge__iexact=q))
         results = exact if len(exact) == 1 else list(qs[:50])
         if not results:
@@ -159,7 +163,40 @@ def penelusuran(request):
             return redirect(f"{reverse('training:trainee_profil', args=[results[0].pk])}?q={q}")
         else:
             ctx["results"] = results
+            ctx["judul_hasil"] = f"{len(results)} trainee cocok"
+    else:  # tanpa kata kunci: tampilkan seluruh karyawan
+        page = Paginator(base.order_by("nama"), 15).get_page(request.GET.get("page"))
+        ctx["results"] = page
+        ctx["page"] = page
+        ctx["judul_hasil"] = f"Seluruh karyawan ({page.paginator.count})"
     return render(request, "training/penelusuran.html", ctx)
+
+
+@trainer_required
+@require_POST
+def trainee_shift_update(request, pk):
+    """Ubah shift trainee langsung dari daftar penelusuran; riwayat shift ikut dicatat."""
+    t = get_object_or_404(Trainee, pk=pk)
+    kembali = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(kembali, allowed_hosts={request.get_host()}):
+        kembali = reverse("training:penelusuran")
+    shift = Shift.objects.filter(pk=request.POST.get("shift") or 0).first()
+    if shift is None:
+        messages.error(request, "Pilih shift yang valid")
+        return redirect(kembali)
+    if t.shift_id == shift.pk:
+        messages.info(request, f"Shift {t.nama} tidak berubah")
+        return redirect(kembali)
+    lama = t.shift.kode if t.shift else "-"
+    today = timezone.localdate()
+    with transaction.atomic():
+        t.riwayat_shift.filter(selesai__isnull=True).update(selesai=today)
+        RiwayatShift.objects.create(trainee=t, shift=shift, lini=t.lini, mulai=today)
+        t.shift = shift
+        t.save(update_fields=["shift"])
+    log(request.user, "Ubah data", "Shift trainee", f"{t.badge} {t.nama}: shift {lama} → {shift.kode}")
+    messages.success(request, f"Shift {t.nama} diubah dari {lama} ke {shift.kode}")
+    return redirect(kembali)
 
 
 @trainer_required
