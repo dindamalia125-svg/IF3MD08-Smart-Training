@@ -17,7 +17,6 @@ from accounts.decorators import trainer_required
 from master.models import Proses, Shift
 
 from .ai_parser import parse_manpower
-from .docx_reader import DocxError, extract_text
 from .evaluasi import evaluasi_trainee
 from .forms import CapaianForm
 from .models import Capaian, ProsesTrainee, RiwayatShift, Sertifikat, Trainee
@@ -55,26 +54,11 @@ def manpower(request):
         action = request.POST.get("action")
         if action == "proses":
             teks = request.POST.get("teks", "").strip()
-            dokumen = request.FILES.get("dokumen")
-            error = None
-            if dokumen:  # dokumen Word diutamakan; teksnya ditampilkan agar bisa diperiksa Trainer
-                if not dokumen.name.lower().endswith(".docx"):
-                    error = "Format file tidak didukung. Unggah dokumen Word (.docx)"
-                else:
-                    try:
-                        teks = extract_text(dokumen)
-                        ctx["dokumen_nama"] = dokumen.name
-                    except DocxError as exc:
-                        error = str(exc)
-            elif not teks:
-                error = "Teks kosong: tempelkan data manpower atau unggah dokumen Word terlebih dahulu"
             ctx["teks"] = teks
-            if error:
-                ctx["error"] = error
+            if not teks:
+                ctx["error"] = "Teks kosong: tempelkan data manpower terlebih dahulu"
             else:
-                parsed = parse_manpower(teks, shift_codes)
-                ctx["sumber"] = parsed[0]["sumber"] if parsed else None
-                ctx["rows"] = _annotate(parsed, shift_codes)
+                ctx["rows"] = _annotate(parse_manpower(teks, shift_codes), shift_codes)
         elif action == "simpan":
             names = request.POST.getlist("nama")
             badges = request.POST.getlist("badge")

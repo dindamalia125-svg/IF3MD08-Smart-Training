@@ -43,7 +43,7 @@ Tes otomatis: `python manage.py test` (46 tes).
 - **UC-02/03/04** kolom kosong, format email salah, kode/akun duplikat → pesan kesalahan; berhasil → konfirmasi + audit log.
 - **UC-05** tidak ada aktivitas pada filter → "Data tidak ditemukan". Audit log tidak bisa diubah/dihapus.
 - **UC-06** data kosong → dashboard kosong dengan keterangan.
-- **UC-07** teks kosong → diminta menempel data atau mengunggah dokumen Word; baris gagal parsing ditandai; badge duplikat ditolak saat simpan. File selain `.docx`, rusak, kosong, atau >5 MB ditolak dengan pesan.
+- **UC-07** teks kosong → diminta menempel data; baris gagal parsing ditandai; badge duplikat ditolak saat simpan.
 - **UC-08** isian bukan angka / negatif → error; capaian sudah ada → konfirmasi timpa (riwayat lama disimpan, `aktif=False`).
 - **UC-09** tidak ditemukan → pesan; lebih dari satu hasil → daftar untuk dipilih.
 - **UC-10** tidak disetujui / belum qualified → tombol Cetak nonaktif (divalidasi juga di server); PDF gagal → pesan + bisa coba lagi (transaksi di-rollback).
@@ -52,8 +52,6 @@ Tes otomatis: `python manage.py test` (46 tes).
 
 ## Modul AI (UC-07)
 Set `ANTHROPIC_API_KEY` (opsional `ANTHROPIC_MODEL`) agar teks diparsing oleh Claude. Tanpa kunci, dipakai parser berbasis aturan sebagai fallback. Hasil selalu berupa rekomendasi yang bisa diperbaiki Trainer sebelum disimpan.
-
-**Unggah dokumen Word:** pada menu *Input Manpower (AI)*, Trainer dapat mengunggah `.docx` dari HR (paragraf, daftar bernomor, atau tabel). `training/docx_reader.py` mengekstrak teksnya (baris judul tabel dilewati), lalu `parse_manpower` memisahkan Nama, Nomor Badge, dan Kode Shift. Teks hasil ekstraksi ditampilkan di kotak teks agar bisa diperiksa. Membutuhkan `python-docx` (ada di `requirements.txt`).
 
 ## Pengaturan yang dapat diubah (env)
 `QUALIFY_THRESHOLD` (default 0.9 — rata-rata output ≥ 90% target = Qualified), `TRAINING_WARNING_RATIO` (0.9), `CONTRACT_WARNING_DAYS` (30).

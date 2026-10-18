@@ -2,11 +2,8 @@
 {% block title %}Input Manpower (AI){% endblock %}
 {% block content %}
 <h1 class="title"><i class="dot"></i> Input Data Manpower dengan Parsing AI</h1>
-<form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
-  <label for="dokumen">Unggah dokumen Word dari HR (.docx)</label>
-  <input id="dokumen" type="file" name="dokumen" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-  <p class="muted">Dokumen boleh berisi paragraf, daftar bernomor, atau tabel (maks. 5 MB). Bila file diunggah, isinya dipakai menggantikan teks di bawah.</p>
-  <label for="teks">Atau tempel daftar manpower dari HR</label>
+<form method="post" novalidate>{% csrf_token %}
+  <label for="teks">Tempel daftar manpower dari HR</label>
   <textarea id="teks" name="teks" rows="6" placeholder="Andi Pratama - TR-0142 - A&#10;Maya Putri - TR-0098 - B&#10;Rudi Hartono - TR-0177 - 3x2">{{ teks }}</textarea>
   <p class="muted">Kode shift yang dikenali: {{ shift_codes|join:", " }}</p>
   {% if error %}<div class="alert error" role="alert">⚠ {{ error }}</div>{% endif %}
@@ -14,7 +11,7 @@
 </form>
 
 {% if rows %}
-<h2 class="sec"># Hasil Parsing {% if sumber == "AI" %}AI{% elif sumber %}(parser aturan, AI tidak aktif){% else %}AI{% endif %} (rekomendasi, dapat diperbaiki){% if dokumen_nama %} — {{ dokumen_nama }}{% endif %}</h2>
+<h2 class="sec"># Hasil Parsing AI (rekomendasi, dapat diperbaiki)</h2>
 <form method="post" novalidate>{% csrf_token %}
   <input type="hidden" name="teks" value="{{ teks }}">
   <table class="t">

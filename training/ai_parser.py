@@ -43,13 +43,10 @@ def _call_claude(text, shift_codes):
     prompt = (
         "Pisahkan daftar manpower berikut menjadi JSON array of object dengan kunci "
         '"nama", "badge", "shift". Kode shift yang valid: ' + ", ".join(shift_codes) + ". "
-        'Teks berasal dari dokumen Word (paragraf atau baris tabel, kolom dipisah tanda "|"). '
-        'Abaikan judul, kop surat, keterangan, dan baris yang bukan data karyawan. '
-        'Satu karyawan = satu object. Jangan menebak: jika suatu bagian tidak dapat dipastikan, '
-        'isi dengan string kosong. Balas HANYA JSON.\n\n' + text
+        'Jika suatu bagian tidak dapat dipastikan, isi dengan string kosong. Balas HANYA JSON.\n\n' + text
     )
     body = json.dumps({
-        "model": settings.ANTHROPIC_MODEL, "max_tokens": 4096,
+        "model": settings.ANTHROPIC_MODEL, "max_tokens": 2000,
         "messages": [{"role": "user", "content": prompt}],
     }).encode()
     req = urllib.request.Request(
@@ -57,7 +54,7 @@ def _call_claude(text, shift_codes):
         headers={"content-type": "application/json", "x-api-key": settings.ANTHROPIC_API_KEY,
                  "anthropic-version": "2023-06-01"},
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    with urllib.request.urlopen(req, timeout=30) as resp:
         data = json.loads(resp.read().decode())
     out = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
     out = re.sub(r"^```(?:json)?|```$", "", out.strip(), flags=re.M).strip()
