@@ -6,16 +6,16 @@ class LoginForm(forms.Form):
     identifier = forms.CharField(
         max_length=254,
         strip=True,
-        label="Username / Email",
+        label="Username / Email / Employee No",
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "username atau email",
+                "placeholder": "username, email, atau Employee No",
                 "autocomplete": "username",
             }
         ),
         error_messages={
-            "required": "Masukkan username atau email Anda."
+            "required": "Masukkan username, email, atau Employee No Anda."
         }
     )
     
@@ -56,11 +56,9 @@ class TrainerForm(forms.Form):
         max_length=150, 
         error_messages={"required": "Isi data dengan lengkap"}
     )
-    email = forms.EmailField(
-        error_messages={
-            "required": "Isi data dengan lengkap", 
-            "invalid": "Gunakan format email dengan benar"
-        }
+    employee_no = forms.CharField(
+        max_length=30,
+        error_messages={"required": "Isi data dengan lengkap"}
     )
     password = forms.CharField(
         required=False, 
@@ -77,7 +75,7 @@ class TrainerForm(forms.Form):
             self.initial = {
                 "nama_lengkap": instance.get_full_name(),
                 "username": instance.username,
-                "email": instance.email,
+                "employee_no": instance.employee_no,
                 "is_active": instance.is_active,
             }
 
@@ -90,13 +88,13 @@ class TrainerForm(forms.Form):
             raise forms.ValidationError("Username sudah digunakan (akun sudah ada)")
         return value
 
-    def clean_email(self):
-        value = self.cleaned_data["email"].strip().lower()
-        qs = User.objects.filter(email__iexact=value)
+    def clean_employee_no(self):
+        value = self.cleaned_data["employee_no"].strip()
+        qs = User.objects.filter(employee_no__iexact=value)
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
-            raise forms.ValidationError("Email sudah digunakan (akun sudah ada)")
+            raise forms.ValidationError("Employee No sudah digunakan (akun sudah ada)")
         return value
 
     def clean(self):
@@ -111,7 +109,7 @@ class TrainerForm(forms.Form):
         user.first_name = d["nama_lengkap"].strip()
         user.last_name = ""
         user.username = d["username"]
-        user.email = d["email"]
+        user.employee_no = d["employee_no"]
         user.is_active = d["is_active"]
         if d.get("password"):
             user.set_password(d["password"])

@@ -15,7 +15,8 @@ def make_admin(username="admin", password="admin12345"):
 
 def make_trainer(username="trainer_dedi", password="trainer12345", active=True, name="Dedi Kurniawan"):
     return User.objects.create_user(username=username, email=f"{username}@x.com", password=password,
-                                    role=User.Role.TRAINER, first_name=name, is_active=active)
+                                    role=User.Role.TRAINER, first_name=name, is_active=active,
+                                    employee_no="EM-0001" if username == "trainer_dedi" else None)
 
 
 def make_master():

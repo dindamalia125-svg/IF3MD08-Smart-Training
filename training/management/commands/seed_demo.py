@@ -20,10 +20,10 @@ class Command(BaseCommand):
         admin.set_password("admin12345")
         admin.save()
         trainers = []
-        for uname, nama in (("trainer_dedi", "Dedi Kurniawan"), ("trainer_sari", "Sari Utami"),
-                            ("trainer_budi", "Budi Santoso")):
+        for uname, nama, no in (("trainer_dedi", "Dedi Kurniawan", "EM-0001"), ("trainer_sari", "Sari Utami", "EM-0002"),
+                                ("trainer_budi", "Budi Santoso", "EM-0003")):
             u, _ = User.objects.get_or_create(username=uname, defaults={
-                "email": f"{uname.split('_')[1]}@perusahaan.com", "first_name": nama, "role": User.Role.TRAINER,
+                "email": f"{uname.split('_')[1]}@perusahaan.com", "first_name": nama, "role": User.Role.TRAINER, "employee_no": no,
                 "is_active": uname != "trainer_budi"})
             u.set_password("trainer12345")
             u.save()

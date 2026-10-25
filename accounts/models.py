@@ -11,8 +11,15 @@ class User(AbstractUser):
         SUPER_ADMIN = "SUPER_ADMIN", "Super Admin"
         TRAINER = "TRAINER", "Trainer"
 
-    email = models.EmailField("email", unique=True)
+    email = models.EmailField("email", unique=True, null=True, blank=True)
+    employee_no = models.CharField("Employee No", max_length=30, unique=True, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.TRAINER)
+
+    def save(self, *args, **kwargs):
+        # string kosong -> NULL agar kolom unik tidak bentrok antar akun tanpa email / Employee No
+        self.email = self.email or None
+        self.employee_no = self.employee_no or None
+        super().save(*args, **kwargs)
 
     @property
     def is_super_admin(self):

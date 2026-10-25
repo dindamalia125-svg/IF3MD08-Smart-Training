@@ -17,11 +17,11 @@
 <div class="row">
   <div class="col" style="flex:2 1 520px">
     <table class="t">
-      <thead><tr><th>Nama</th><th>Username</th><th>Email</th><th>Status</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>Nama</th><th>Username</th><th>Employee No</th><th>Status</th><th>Aksi</th></tr></thead>
       <tbody>
       {% for u in page %}
         <tr>
-          <td>{{ u.nama_tampil }}</td><td>{{ u.username }}</td><td>{{ u.email }}</td>
+          <td>{{ u.nama_tampil }}</td><td>{{ u.username }}</td><td>{{ u.employee_no|default:"-" }}</td>
           <td>{% if u.is_active %}<span class="badge ok">Aktif</span>{% else %}<span class="badge off">Nonaktif</span>{% endif %}</td>
           <td>
             <a href="{% url 'accounts:user_edit' u.pk %}">Ubah</a> ·
@@ -44,8 +44,8 @@
       {% for e in form.nama_lengkap.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
       <label for="{{ form.username.id_for_label }}">Username</label>{{ form.username }}
       {% for e in form.username.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
-      <label for="{{ form.email.id_for_label }}">Email</label>{{ form.email }}
-      {% for e in form.email.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      <label for="{{ form.employee_no.id_for_label }}">Employee No</label>{{ form.employee_no }}
+      {% for e in form.employee_no.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
       <label for="{{ form.password.id_for_label }}">Kata Sandi{% if editing %} <span class="muted">(kosongkan bila tidak diubah)</span>{% endif %}</label>{{ form.password }}
       {% for e in form.password.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
       <label style="display:flex;gap:8px;align-items:center;font-weight:400"><input type="checkbox" name="is_active" {% if form.is_active.value %}checked{% endif %}> Akun aktif</label>

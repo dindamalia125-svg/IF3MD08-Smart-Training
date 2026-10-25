@@ -30,7 +30,7 @@ def login_view(request):
     if request.method == "POST":
         if form.is_valid():
             ident = form.cleaned_data["identifier"]
-            candidate = User.objects.filter(Q(username__iexact=ident) | Q(email__iexact=ident)).first()
+            candidate = User.objects.filter(Q(username__iexact=ident) | Q(email__iexact=ident) | Q(employee_no__iexact=ident)).first()
             # authenticate() menolak akun nonaktif -> pesan sama dengan kredensial salah
             user = authenticate(request, username=candidate.username, password=form.cleaned_data["password"]) if candidate else None
             if user is not None:
@@ -74,7 +74,7 @@ def user_list(request, pk=None):
     q = request.GET.get("q", "").strip()
     status = request.GET.get("status", "")
     if q:
-        qs = qs.filter(Q(first_name__icontains=q) | Q(username__icontains=q) | Q(email__icontains=q))
+        qs = qs.filter(Q(first_name__icontains=q) | Q(username__icontains=q) | Q(employee_no__icontains=q))
     if status == "aktif":
         qs = qs.filter(is_active=True)
     elif status == "nonaktif":
