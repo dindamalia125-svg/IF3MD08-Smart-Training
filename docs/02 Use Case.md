@@ -54,7 +54,7 @@ KPI, grafik output dan reject harian, output per proses, 5 sertifikat terbaru. F
 
 ### UC-07 Parsing Manpower
 
-Input: teks atau `.docx` (file diutamakan bila keduanya ada). Tiap baris diberi status: `ok`, `gagal` (nama/Employee No/shift tidak lengkap atau shift tidak dikenal), `duplikat` (Employee No sudah ada atau kembar dalam daftar). Saat simpan, hanya baris `ok` yang masuk; data dikoreksi dulu oleh Trainer. Ditolak: bukan `.docx`, rusak, kosong, > 5 MB.
+Input: teks atau `.docx` (file diutamakan bila keduanya ada). Tiap baris diberi status: `ok`, `gagal` (nama/Emp No./shift tidak lengkap atau shift tidak dikenal), `duplikat` (Emp No. sudah ada atau kembar dalam daftar). Saat simpan, hanya baris `ok` yang masuk; data dikoreksi dulu oleh Trainer. Ditolak: bukan `.docx`, rusak, kosong, > 5 MB.
 
 ### UC-08 Capaian Harian
 
@@ -62,7 +62,7 @@ Output dan reject wajib bilangan bulat ≥ 0. Data aktif dengan trainee+proses+t
 
 ### UC-09 Penelusuran
 
-Cari Employee No atau nama. Satu hasil (atau Employee No persis) → langsung ke profil. Banyak → daftar pilih. Kosong → "Data trainee tidak ditemukan". Profil: riwayat shift dan proses.
+Cari Emp No. atau nama. Satu hasil (atau Emp No. persis) → langsung ke profil. Banyak → daftar pilih. Kosong → "Data trainee tidak ditemukan". Profil: riwayat shift dan proses.
 
 ### UC-10 Evaluasi & Sertifikat
 

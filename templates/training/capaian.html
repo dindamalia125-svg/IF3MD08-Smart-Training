@@ -7,8 +7,8 @@
   <form method="post" class="col card" style="flex:1 1 380px;max-width:430px" novalidate>{% csrf_token %}
     <label for="id_trainee">Trainee</label>
     <select id="id_trainee" name="trainee">
-      <option value="">Cari Employee No atau nama…</option>
-      {% for t in form.fields.trainee.queryset %}<option value="{{ t.pk }}" {% if sel_trainee.pk == t.pk %}selected{% endif %}>{{ t.badge }} — {{ t.nama }}</option>{% endfor %}
+      <option value="">Cari Emp No. atau nama…</option>
+      {% for t in form.fields.trainee.queryset %}<option value="{{ t.pk }}" {% if sel_trainee.pk == t.pk %}selected{% endif %}>{{ t.emp_no }} — {{ t.nama }}</option>{% endfor %}
     </select>
     <label for="id_proses">Kode Proses Kerja</label>
     <select id="id_proses" name="proses">
@@ -33,7 +33,7 @@
 
   <div class="col">
     {% if sel_trainee %}
-    <h2 class="sec" style="margin-top:0"># Riwayat Capaian — {{ sel_trainee.nama }} ({{ sel_trainee.badge }})</h2>
+    <h2 class="sec" style="margin-top:0"># Riwayat Capaian — {{ sel_trainee.nama }} ({{ sel_trainee.emp_no }})</h2>
     <table class="t">
       <thead><tr><th>Tanggal</th><th>Proses</th><th>Output</th><th>Reject</th><th>Dicatat Oleh</th></tr></thead>
       <tbody>{% for c in riwayat %}<tr><td>{{ c.tanggal|date:"d M Y" }}</td><td>{{ c.proses.nama }}</td><td>{{ c.output }}</td><td>{{ c.reject }}</td><td>{{ c.dicatat_oleh.username|default:"-" }}</td></tr>

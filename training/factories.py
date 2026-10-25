@@ -16,7 +16,7 @@ def make_admin(username="admin", password="admin12345"):
 def make_trainer(username="trainer_dedi", password="trainer12345", active=True, name="Dedi Kurniawan"):
     return User.objects.create_user(username=username, email=f"{username}@x.com", password=password,
                                     role=User.Role.TRAINER, first_name=name, is_active=active,
-                                    employee_no="EM-0001" if username == "trainer_dedi" else None)
+                                    emp_no="EM-0001" if username == "trainer_dedi" else None)
 
 
 def make_master():
@@ -31,8 +31,8 @@ def make_master():
     return shifts, linis, proses
 
 
-def make_trainee(badge="TR-0142", nama="Andi Pratama", shift=None, lini=None, **kw):
-    t = Trainee.objects.create(badge=badge, nama=nama, shift=shift, lini=lini, **kw)
+def make_trainee(emp_no="TR-0142", nama="Andi Pratama", shift=None, lini=None, **kw):
+    t = Trainee.objects.create(emp_no=emp_no, nama=nama, shift=shift, lini=lini, **kw)
     if shift:
         RiwayatShift.objects.create(trainee=t, shift=shift, lini=lini, mulai=timezone.localdate() - timedelta(days=30))
     return t

@@ -8,7 +8,7 @@ from master.models import Lini, Proses, Shift
 class Trainee(models.Model):
     """Karyawan/operator yang menjalani training (hasil UC-07)."""
 
-    badge = models.CharField("Employee No", max_length=30, unique=True)
+    emp_no = models.CharField("Emp No.", max_length=30, unique=True)
     nama = models.CharField(max_length=150)
     shift = models.ForeignKey(Shift, null=True, blank=True, on_delete=models.SET_NULL, related_name="trainees")
     lini = models.ForeignKey(Lini, null=True, blank=True, on_delete=models.SET_NULL, related_name="trainees")
@@ -21,7 +21,7 @@ class Trainee(models.Model):
         ordering = ["nama"]
 
     def __str__(self):
-        return f"{self.badge} {self.nama}"
+        return f"{self.emp_no} {self.nama}"
 
     @property
     def status_label(self):
@@ -58,7 +58,7 @@ class ProsesTrainee(models.Model):
         ordering = ["proses__kode"]
 
     def __str__(self):
-        return f"{self.trainee.badge} · {self.proses.nama}"
+        return f"{self.trainee.emp_no} · {self.proses.nama}"
 
     @property
     def lama_hari(self):

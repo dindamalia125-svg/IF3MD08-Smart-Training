@@ -12,7 +12,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from training.models import Capaian
 
-HEADERS = ["Employee No", "Nama", "Proses", "Output", "Reject", "% Target"]
+HEADERS = ["Emp No.", "Nama", "Proses", "Output", "Reject", "% Target"]
 
 
 def parse_periode(jenis, raw):
@@ -32,13 +32,13 @@ def rekap_rows(start, end):
     caps = Capaian.objects.filter(aktif=True, tanggal__range=(start, end)).select_related("trainee", "proses")
     for c in caps:
         k = (c.trainee_id, c.proses_id)
-        a = agg.setdefault(k, {"badge": c.trainee.badge, "nama": c.trainee.nama, "proses": c.proses.nama,
+        a = agg.setdefault(k, {"emp_no": c.trainee.emp_no, "nama": c.trainee.nama, "proses": c.proses.nama,
                                "target": c.proses.target_harian, "output": 0, "reject": 0, "hari": 0})
         a["output"] += c.output
         a["reject"] += c.reject
         a["hari"] += 1
     rows = []
-    for a in sorted(agg.values(), key=lambda r: (r["badge"], r["proses"])):
+    for a in sorted(agg.values(), key=lambda r: (r["emp_no"], r["proses"])):
         denom = a["target"] * a["hari"]
         a["persen"] = round(a["output"] / denom * 100) if denom else 0
         rows.append(a)
@@ -58,7 +58,7 @@ def build_xlsx(rows, judul):
         cell.fill = PatternFill("solid", fgColor="1F6FD0")
         cell.alignment = Alignment(horizontal="center")
     for r in rows:
-        ws.append([r["badge"], r["nama"], r["proses"], r["output"], r["reject"], r["persen"] / 100])
+        ws.append([r["emp_no"], r["nama"], r["proses"], r["output"], r["reject"], r["persen"] / 100])
     for row in ws.iter_rows(min_row=4, min_col=6, max_col=6):
         row[0].number_format = "0%"
     for col, width in zip("ABCDEF", (12, 28, 20, 10, 10, 10)):
@@ -72,7 +72,7 @@ def build_pdf(rows, judul):
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4), title=judul, leftMargin=30, rightMargin=30)
     styles = getSampleStyleSheet()
-    data = [HEADERS] + [[r["badge"], r["nama"], r["proses"], r["output"], r["reject"], f"{r['persen']}%"] for r in rows]
+    data = [HEADERS] + [[r["emp_no"], r["nama"], r["proses"], r["output"], r["reject"], f"{r['persen']}%"] for r in rows]
     table = Table(data, repeatRows=1, colWidths=[80, 200, 140, 70, 70, 70])
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F6FD0")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),

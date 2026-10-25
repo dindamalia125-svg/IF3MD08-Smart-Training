@@ -55,7 +55,7 @@ Kembali ke [[00 AI Context]]. Alur per fitur ada di [[02 Use Case]].
 ## Manpower
 
 - Kode shift valid = isi tabel `Shift`; pencocokan tidak membedakan huruf besar/kecil dan dinormalkan ke kode resmi.
-- Employee No dinormalkan huruf besar. Duplikat = sudah ada di database **atau** kembar di daftar yang sama (yang pertama menang).
+- Emp No. dinormalkan huruf besar. Duplikat = sudah ada di database **atau** kembar di daftar yang sama (yang pertama menang).
 - Trainee baru: `mulai_training` = hari ini, plus satu `RiwayatShift`. `lini` dan `kontrak_berakhir` **belum** diisi lewat parsing (diatur manual, mis. lewat admin).
 - Hasil AI/regex adalah rekomendasi. Baris `gagal`/`duplikat` ditolak saat simpan.
 - Batas `.docx`: 5 MB; teks dipotong 20.000 karakter sebelum diparse. Baris judul tabel dilewati.

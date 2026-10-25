@@ -10,8 +10,8 @@ class ProsesInline(admin.TabularInline):
 
 @admin.register(Trainee)
 class TraineeAdmin(admin.ModelAdmin):
-    list_display = ("badge", "nama", "shift", "lini", "kontrak_berakhir", "aktif")
-    search_fields = ("badge", "nama")
+    list_display = ("emp_no", "nama", "shift", "lini", "kontrak_berakhir", "aktif")
+    search_fields = ("emp_no", "nama")
     inlines = [ProsesInline]
 
 

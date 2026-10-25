@@ -4,8 +4,8 @@
 <h1 class="title"><i class="dot"></i> Evaluasi Kualifikasi &amp; Sertifikat</h1>
 <p class="muted">Pilih trainee untuk mengevaluasi kualifikasi dan mencetak sertifikat. Anda juga bisa memulai dari <a href="{% url 'training:penelusuran' %}">Penelusuran Trainee</a>.</p>
 <table class="t">
-  <thead><tr><th>Employee No</th><th>Nama</th><th>Shift</th><th>Status</th><th>Aksi</th></tr></thead>
-  <tbody>{% for t in trainees %}<tr><td>{{ t.badge }}</td><td>{{ t.nama }}</td><td>{{ t.shift.kode|default:"-" }}</td><td>{{ t.status_label }}</td>
+  <thead><tr><th>Emp No.</th><th>Nama</th><th>Shift</th><th>Status</th><th>Aksi</th></tr></thead>
+  <tbody>{% for t in trainees %}<tr><td>{{ t.emp_no }}</td><td>{{ t.nama }}</td><td>{{ t.shift.kode|default:"-" }}</td><td>{{ t.status_label }}</td>
     <td><a href="{% url 'training:evaluasi' t.pk %}">Evaluasi →</a></td></tr>
   {% empty %}<tr><td colspan="5" class="muted">Belum ada trainee. Tambahkan lewat Input Manpower (AI).</td></tr>{% endfor %}</tbody>
 </table>

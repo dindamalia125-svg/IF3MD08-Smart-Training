@@ -7,7 +7,7 @@
   <div class="avatar" style="width:70px;height:70px"></div>
   <div style="flex:1">
     <div style="font-size:18px;font-weight:700">{{ t.nama }}</div>
-    <div>Employee No {{ t.badge }} · Shift {{ t.shift.kode|default:"-" }} · {{ t.lini.lokasi_lengkap|default:"Lini belum ditentukan" }}</div>
+    <div>Emp No. {{ t.emp_no }} · Shift {{ t.shift.kode|default:"-" }} · {{ t.lini.lokasi_lengkap|default:"Lini belum ditentukan" }}</div>
     <div class="muted">{% if t.kontrak_berakhir %}Kontrak berakhir {{ t.kontrak_berakhir|date:"d M Y" }}{% else %}Kontrak belum diatur{% endif %} · Mulai training {{ t.mulai_training|date:"d M Y"|default:"-" }}</div>
   </div>
   <div>● Status: <span class="badge {% if t.status_label == 'Qualified' %}ok{% else %}warn{% endif %}">{{ t.status_label }}</span></div>

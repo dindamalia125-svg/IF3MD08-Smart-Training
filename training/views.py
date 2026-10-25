@@ -26,22 +26,22 @@ from io import BytesIO
 
 # ---------------------------------------------------------------- UC-07
 def _annotate(rows, shift_codes):
-    """Tandai tiap baris: ok / gagal (AI tidak bisa memisah) / duplikat (Employee No sudah ada)."""
-    existing = set(Trainee.objects.values_list("badge", flat=True))
+    """Tandai tiap baris: ok / gagal (AI tidak bisa memisah) / duplikat (Emp No. sudah ada)."""
+    existing = set(Trainee.objects.values_list("emp_no", flat=True))
     seen = set()
     valid_shift = {c.upper(): c for c in shift_codes}
     out = []
     for r in rows:
-        nama, badge, shift = r["nama"].strip(), r["badge"].strip().upper(), r["shift"].strip()
+        nama, emp_no, shift = r["nama"].strip(), r["emp_no"].strip().upper(), r["shift"].strip()
         shift = valid_shift.get(shift.upper(), shift)
-        row = {"nama": nama, "badge": badge, "shift": shift}
-        if not (nama and badge and shift in valid_shift.values()):
+        row = {"nama": nama, "emp_no": emp_no, "shift": shift}
+        if not (nama and emp_no and shift in valid_shift.values()):
             row.update(status="gagal", pesan="AI gagal memisahkan baris, perbaiki manual")
-        elif badge in existing or badge in seen:
-            row.update(status="duplikat", pesan="Employee No sudah ada (duplikat), baris ditolak")
+        elif emp_no in existing or emp_no in seen:
+            row.update(status="duplikat", pesan="Emp No. sudah ada (duplikat), baris ditolak")
         else:
             row.update(status="ok", pesan="OK")
-            seen.add(badge)
+            seen.add(emp_no)
         out.append(row)
     return out
 
@@ -61,23 +61,23 @@ def manpower(request):
                 ctx["rows"] = _annotate(parse_manpower(teks, shift_codes), shift_codes)
         elif action == "simpan":
             names = request.POST.getlist("nama")
-            badges = request.POST.getlist("badge")
+            emp_nos = request.POST.getlist("emp_no")
             shifts = request.POST.getlist("shift")
-            rows = _annotate([{"nama": n, "badge": b, "shift": s} for n, b, s in zip(names, badges, shifts)], shift_codes)
+            rows = _annotate([{"nama": n, "emp_no": b, "shift": s} for n, b, s in zip(names, emp_nos, shifts)], shift_codes)
             saved = 0
             with transaction.atomic():
                 for row in rows:
                     if row["status"] != "ok":
                         continue
                     shift = Shift.objects.get(kode=row["shift"])
-                    t = Trainee.objects.create(badge=row["badge"], nama=row["nama"], shift=shift,
+                    t = Trainee.objects.create(emp_no=row["emp_no"], nama=row["nama"], shift=shift,
                                                mulai_training=timezone.localdate())
                     RiwayatShift.objects.create(trainee=t, shift=shift, mulai=timezone.localdate())
                     row["status"], row["pesan"] = "tersimpan", "Tersimpan"
                     saved += 1
             rejected = len(rows) - saved
             log(request.user, "Parsing manpower", "Data manpower",
-                f"{saved} baris disimpan, {rejected} baris ditolak (gagal parsing atau duplikat Employee No)")
+                f"{saved} baris disimpan, {rejected} baris ditolak (gagal parsing atau duplikat Emp No.)")
             ctx["rows"] = rows
             ctx["saved"], ctx["rejected"] = saved, rejected
             ctx["teks"] = request.POST.get("teks", "")
@@ -107,7 +107,7 @@ def capaian(request):
                     ProsesTrainee.objects.get_or_create(trainee=d["trainee"], proses=d["proses"],
                                                         defaults={"mulai": d["tanggal"]})
                 log(request.user, "Input data", "Capaian harian",
-                    f"{d['trainee'].badge} · {d['proses'].nama} · output {d['output']}, reject {d['reject']}")
+                    f"{d['trainee'].emp_no} · {d['proses'].nama} · output {d['output']}, reject {d['reject']}")
                 messages.success(request, "Capaian tersimpan, riwayat sebelumnya tidak dihapus")
                 return redirect(f"{reverse('training:capaian')}?trainee={d['trainee'].pk}&proses={d['proses'].pk}")
         else:
@@ -138,8 +138,8 @@ def penelusuran(request):
     ctx = {"q": q, "shifts": Shift.objects.all()}
     base = Trainee.objects.select_related("shift", "lini")
     if q:
-        qs = base.filter(Q(badge__icontains=q) | Q(nama__icontains=q))
-        exact = list(qs.filter(badge__iexact=q))
+        qs = base.filter(Q(emp_no__icontains=q) | Q(nama__icontains=q))
+        exact = list(qs.filter(emp_no__iexact=q))
         results = exact if len(exact) == 1 else list(qs[:50])
         if not results:
             ctx["tidak_ditemukan"] = True
@@ -178,7 +178,7 @@ def trainee_shift_update(request, pk):
         RiwayatShift.objects.create(trainee=t, shift=shift, lini=t.lini, mulai=today)
         t.shift = shift
         t.save(update_fields=["shift"])
-    log(request.user, "Ubah data", "Shift trainee", f"{t.badge} {t.nama}: shift {lama} → {shift.kode}")
+    log(request.user, "Ubah data", "Shift trainee", f"{t.emp_no} {t.nama}: shift {lama} → {shift.kode}")
     messages.success(request, f"Shift {t.nama} diubah dari {lama} ke {shift.kode}")
     return redirect(kembali)
 
@@ -187,7 +187,7 @@ def trainee_shift_update(request, pk):
 def trainee_profil(request, pk):
     t = get_object_or_404(Trainee.objects.select_related("shift", "lini"), pk=pk)
     return render(request, "training/profil.html", {
-        "t": t, "q": request.GET.get("q", t.badge),
+        "t": t, "q": request.GET.get("q", t.emp_no),
         "riwayat_shift": t.riwayat_shift.select_related("shift", "lini"),
         "proses_list": t.proses_list.select_related("proses"),
     })
@@ -263,6 +263,6 @@ def sertifikat_pdf(request):
     if not certs:
         raise Http404("Sertifikat tidak ditemukan")
     data = build_certificates_pdf(certs)
-    name = f"{certs[0].nomor}.pdf" if len(certs) == 1 else f"sertifikat_{certs[0].trainee.badge}.pdf"
+    name = f"{certs[0].nomor}.pdf" if len(certs) == 1 else f"sertifikat_{certs[0].trainee.emp_no}.pdf"
     return FileResponse(BytesIO(data), content_type="application/pdf", as_attachment=bool(request.GET.get("unduh")),
                         filename=name)

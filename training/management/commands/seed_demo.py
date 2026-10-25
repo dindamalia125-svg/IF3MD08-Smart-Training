@@ -23,7 +23,7 @@ class Command(BaseCommand):
         for uname, nama, no in (("trainer_dedi", "Dedi Kurniawan", "EM-0001"), ("trainer_sari", "Sari Utami", "EM-0002"),
                                 ("trainer_budi", "Budi Santoso", "EM-0003")):
             u, _ = User.objects.get_or_create(username=uname, defaults={
-                "email": f"{uname.split('_')[1]}@perusahaan.com", "first_name": nama, "role": User.Role.TRAINER, "employee_no": no,
+                "email": f"{uname.split('_')[1]}@perusahaan.com", "first_name": nama, "role": User.Role.TRAINER, "emp_no": no,
                 "is_active": uname != "trainer_budi"})
             u.set_password("trainer12345")
             u.save()
@@ -35,8 +35,8 @@ class Command(BaseCommand):
             self.stdout.write("Data trainee sudah ada, seed dilewati. Hapus db.sqlite3 untuk mengulang dari awal.")
             return
 
-        def mk(badge, nama, shift, lini, **kw):
-            return make_trainee(badge, nama, shifts[shift], linis[lini], mulai_training=today - timedelta(days=20), **kw)
+        def mk(emp_no, nama, shift, lini, **kw):
+            return make_trainee(emp_no, nama, shifts[shift], linis[lini], mulai_training=today - timedelta(days=20), **kw)
 
         andi = mk("TR-0142", "Andi Pratama", "A", "Line 2", kontrak_berakhir=today + timedelta(days=120))
         maya = mk("TR-0098", "Maya Putri", "B", "Line 1", kontrak_berakhir=today + timedelta(days=200))
@@ -66,7 +66,7 @@ class Command(BaseCommand):
             Sertifikat.objects.create(nomor=Sertifikat.nomor_berikutnya(), trainee=t, proses=proses[p],
                                       dicetak_oleh=dedi, tanggal=today - timedelta(days=3), rata_output=297)
 
-        log(sari, "Parsing manpower", "Data manpower", "8 baris disimpan, 1 baris ditolak (duplikat Employee No)")
+        log(sari, "Parsing manpower", "Data manpower", "8 baris disimpan, 1 baris ditolak (duplikat Emp No.)")
         log(dedi, "Input data", "Capaian harian", "TR-0142 · Assembly A · output 118, reject 2")
         log(dedi, "Cetak sertifikat", "Sertifikat", "CERT-demo · Andi Pratama")
         log(admin, "Ubah data", "Master proses", "PRC-003 target harian 180 → 200")

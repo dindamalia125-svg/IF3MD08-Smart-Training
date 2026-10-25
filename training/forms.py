@@ -24,7 +24,7 @@ class CapaianForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # queryset dievaluasi saat form dibuat agar selalu terbaru
-        self.fields["trainee"].queryset = Trainee.objects.filter(aktif=True).order_by("badge")
+        self.fields["trainee"].queryset = Trainee.objects.filter(aktif=True).order_by("emp_no")
         self.fields["proses"].queryset = Proses.objects.all()
 
     def first_error(self):

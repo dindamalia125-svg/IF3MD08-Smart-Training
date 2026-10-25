@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}Evaluasi & Sertifikat{% endblock %}
 {% block content %}
-<h1 class="title"><i class="dot"></i> Evaluasi Kualifikasi &amp; Cetak Sertifikat — {{ t.nama }} ({{ t.badge }})</h1>
+<h1 class="title"><i class="dot"></i> Evaluasi Kualifikasi &amp; Cetak Sertifikat — {{ t.nama }} ({{ t.emp_no }})</h1>
 <div class="row">
   <form method="post" class="col" id="form-evaluasi" novalidate style="flex:1.2 1 480px">{% csrf_token %}
     <table class="t">

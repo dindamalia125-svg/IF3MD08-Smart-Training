@@ -33,7 +33,7 @@ class ExportTests(TestCase):
         self.assertContains(r, f"rekap_training_{self.kemarin}.xlsx")
         f = self.client.get(reverse("reports:unduh"), {"jenis": "harian", "periode_harian": self.kemarin, "format": "xlsx"})
         ws = load_workbook(BytesIO(f.content)).active
-        self.assertEqual([c.value for c in ws[3]], ["Employee No", "Nama", "Proses", "Output", "Reject", "% Target"])
+        self.assertEqual([c.value for c in ws[3]], ["Emp No.", "Nama", "Proses", "Output", "Reject", "% Target"])
         self.assertEqual(ws["D4"].value, 118)
         self.assertAlmostEqual(ws["F4"].value, 118 / 120, places=2)
         self.assertTrue(AuditLog.objects.filter(aktivitas="Ekspor laporan").exists())

@@ -6,10 +6,10 @@ from .models import AuditLog, User
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("username", "employee_no", "email", "first_name", "role", "is_active")
+    list_display = ("username", "emp_no", "email", "first_name", "role", "is_active")
     list_filter = ("role", "is_active")
-    fieldsets = UserAdmin.fieldsets + (("Peran", {"fields": ("employee_no", "role")}),)
-    add_fieldsets = UserAdmin.add_fieldsets + (("Peran", {"fields": ("email", "employee_no", "role")}),)
+    fieldsets = UserAdmin.fieldsets + (("Peran", {"fields": ("emp_no", "role")}),)
+    add_fieldsets = UserAdmin.add_fieldsets + (("Peran", {"fields": ("email", "emp_no", "role")}),)
 
 
 @admin.register(AuditLog)

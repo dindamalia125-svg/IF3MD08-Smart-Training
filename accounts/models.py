@@ -12,13 +12,13 @@ class User(AbstractUser):
         TRAINER = "TRAINER", "Trainer"
 
     email = models.EmailField("email", unique=True, null=True, blank=True)
-    employee_no = models.CharField("Employee No", max_length=30, unique=True, null=True, blank=True)
+    emp_no = models.CharField("Emp No.", max_length=30, unique=True, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.TRAINER)
 
     def save(self, *args, **kwargs):
-        # string kosong -> NULL agar kolom unik tidak bentrok antar akun tanpa email / Employee No
+        # string kosong -> NULL agar kolom unik tidak bentrok antar akun tanpa email / Emp No.
         self.email = self.email or None
-        self.employee_no = self.employee_no or None
+        self.emp_no = self.emp_no or None
         super().save(*args, **kwargs)
 
     @property

@@ -18,7 +18,7 @@ class LoginTests(TestCase):
         r = self.client.post(reverse("accounts:login"), {"identifier": "admin", "password": "admin12345"})
         self.assertRedirects(r, reverse("dashboard:super_admin"))
 
-    def test_login_by_employee_no(self):
+    def test_login_by_emp_no(self):
         r = self.client.post(reverse("accounts:login"), {"identifier": "EM-0001", "password": "trainer12345"})
         self.assertRedirects(r, reverse("dashboard:trainer"))
 
@@ -57,7 +57,7 @@ class UserManagementTests(TestCase):
     def setUp(self):
         make_admin()
         self.client.login(username="admin", password="admin12345")
-        self.valid = {"nama_lengkap": "Maya Putri", "username": "trainer_maya", "employee_no": "EM-1001",
+        self.valid = {"nama_lengkap": "Maya Putri", "username": "trainer_maya", "emp_no": "EM-1001",
                       "password": "rahasia123", "is_active": "on"}
 
     def test_create_trainer(self):
@@ -73,24 +73,24 @@ class UserManagementTests(TestCase):
         self.assertContains(r, "Isi data dengan lengkap")
         self.assertFalse(User.objects.filter(role="TRAINER").exists())
 
-    def test_employee_no_required(self):
-        r = self.client.post(reverse("accounts:user_add"), {**self.valid, "employee_no": ""})
+    def test_emp_no_required(self):
+        r = self.client.post(reverse("accounts:user_add"), {**self.valid, "emp_no": ""})
         self.assertContains(r, "Isi data dengan lengkap")
         self.assertFalse(User.objects.filter(username="trainer_maya").exists())
 
-    def test_duplicate_username_and_employee_no(self):
+    def test_duplicate_username_and_emp_no(self):
         make_trainer("trainer_maya")
         r = self.client.post(reverse("accounts:user_add"), self.valid)
         self.assertContains(r, "Username sudah digunakan")
         u = User.objects.get(username="trainer_maya")
-        u.employee_no = "EM-1001"
+        u.emp_no = "EM-1001"
         u.save()
         r = self.client.post(reverse("accounts:user_add"), {**self.valid, "username": "trainer_baru"})
-        self.assertContains(r, "Employee No sudah digunakan")
+        self.assertContains(r, "Emp No. sudah digunakan")
 
     def test_edit_without_password_keeps_old_password(self):
         t = make_trainer("trainer_x", name="Lama")
-        data = {**self.valid, "username": "trainer_x", "employee_no": "EM-2002", "password": "", "nama_lengkap": "Baru"}
+        data = {**self.valid, "username": "trainer_x", "emp_no": "EM-2002", "password": "", "nama_lengkap": "Baru"}
         self.client.post(reverse("accounts:user_edit", args=[t.pk]), data)
         t.refresh_from_db()
         self.assertEqual(t.first_name, "Baru")

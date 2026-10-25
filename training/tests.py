@@ -20,9 +20,9 @@ class Base(TestCase):
 class ParserTests(Base):
     def test_rule_based_parser(self):
         rows = parse_manpower("Andi Pratama - TR-0142 - A\nMaya Putri, TR-0098, b\n1. Rudi Hartono | TR-0177 | 3x2\nSiti ???", ["A", "B", "3x2"])
-        self.assertEqual([(r["nama"], r["badge"], r["shift"]) for r in rows[:3]],
+        self.assertEqual([(r["nama"], r["emp_no"], r["shift"]) for r in rows[:3]],
                          [("Andi Pratama", "TR-0142", "A"), ("Maya Putri", "TR-0098", "B"), ("Rudi Hartono", "TR-0177", "3x2")])
-        self.assertEqual(rows[3]["badge"], "")
+        self.assertEqual(rows[3]["emp_no"], "")
 
 
 class ManpowerTests(Base):
@@ -34,17 +34,17 @@ class ManpowerTests(Base):
         make_trainee("TR-0098", "Maya Lama", self.shifts["B"])
         teks = "Andi Pratama - TR-0142 - A\nMaya Putri - TR-0098 - B\nSiti ???"
         r = self.client.post(reverse("training:manpower"), {"action": "proses", "teks": teks})
-        self.assertContains(r, "Employee No sudah ada (duplikat), baris ditolak")
+        self.assertContains(r, "Emp No. sudah ada (duplikat), baris ditolak")
         self.assertContains(r, "AI gagal memisahkan baris")
 
     def test_save_only_valid_rows(self):
         make_trainee("TR-0098", "Maya Lama", self.shifts["B"])
         data = {"action": "simpan", "nama": ["Andi Pratama", "Maya Putri", "Rudi", "Dobel"],
-                "badge": ["TR-0142", "TR-0098", "TR-0177", "TR-0142"], "shift": ["A", "B", "3x2", "A"]}
+                "emp_no": ["TR-0142", "TR-0098", "TR-0177", "TR-0142"], "shift": ["A", "B", "3x2", "A"]}
         r = self.client.post(reverse("training:manpower"), data)
         self.assertContains(r, "2 baris berhasil disimpan, 2 baris ditolak")
         self.assertEqual(Trainee.objects.count(), 3)
-        self.assertEqual(Trainee.objects.get(badge="TR-0098").nama, "Maya Lama")
+        self.assertEqual(Trainee.objects.get(emp_no="TR-0098").nama, "Maya Lama")
         self.assertTrue(AuditLog.objects.filter(aktivitas="Parsing manpower").exists())
 
 
@@ -90,7 +90,7 @@ class SearchTests(Base):
         r = self.client.get(reverse("training:penelusuran"), {"q": "zzz"})
         self.assertContains(r, "Data trainee tidak ditemukan")
 
-    def test_exact_badge_goes_to_profile(self):
+    def test_exact_emp_no_goes_to_profile(self):
         r = self.client.get(reverse("training:penelusuran"), {"q": "TR-0142"})
         self.assertEqual(r.status_code, 302)
         r = self.client.get(r["Location"])
