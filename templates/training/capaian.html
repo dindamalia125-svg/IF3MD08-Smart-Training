@@ -7,7 +7,7 @@
   <form method="post" class="col card" style="flex:1 1 380px;max-width:430px" novalidate>{% csrf_token %}
     <label for="id_trainee">Trainee</label>
     <select id="id_trainee" name="trainee">
-      <option value="">Cari No. Badge atau nama…</option>
+      <option value="">Cari Employee No atau nama…</option>
       {% for t in form.fields.trainee.queryset %}<option value="{{ t.pk }}" {% if sel_trainee.pk == t.pk %}selected{% endif %}>{{ t.badge }} — {{ t.nama }}</option>{% endfor %}
     </select>
     <label for="id_proses">Kode Proses Kerja</label>

@@ -66,7 +66,7 @@ class Command(BaseCommand):
             Sertifikat.objects.create(nomor=Sertifikat.nomor_berikutnya(), trainee=t, proses=proses[p],
                                       dicetak_oleh=dedi, tanggal=today - timedelta(days=3), rata_output=297)
 
-        log(sari, "Parsing manpower", "Data manpower", "8 baris disimpan, 1 baris ditolak (duplikat badge)")
+        log(sari, "Parsing manpower", "Data manpower", "8 baris disimpan, 1 baris ditolak (duplikat Employee No)")
         log(dedi, "Input data", "Capaian harian", "TR-0142 · Assembly A · output 118, reject 2")
         log(dedi, "Cetak sertifikat", "Sertifikat", "CERT-demo · Andi Pratama")
         log(admin, "Ubah data", "Master proses", "PRC-003 target harian 180 → 200")

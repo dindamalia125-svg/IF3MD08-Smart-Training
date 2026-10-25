@@ -32,7 +32,7 @@ def build_certificates_pdf(certificates):
         c.setFont("Helvetica-Bold", 26)
         c.drawCentredString(w / 2, h - 112 * mm, cert.trainee.nama)
         c.setFont("Helvetica", 13)
-        c.drawCentredString(w / 2, h - 126 * mm, f"Nomor Badge {cert.trainee.badge}")
+        c.drawCentredString(w / 2, h - 126 * mm, f"Employee No {cert.trainee.badge}")
         c.drawCentredString(w / 2, h - 140 * mm,
                             f"dinyatakan QUALIFIED pada proses {cert.proses.nama}")
         c.drawCentredString(w / 2, h - 148 * mm, "dengan hasil evaluasi sesuai standar.")

@@ -1,6 +1,6 @@
 """Modul parsing manpower (UC-07).
 
-Teks dari HR dipisah menjadi Nama, Nomor Badge, dan Kode Shift.
+Teks dari HR dipisah menjadi Nama, Employee No, dan Kode Shift.
 - Jika ANTHROPIC_API_KEY diatur, teks dikirim ke Claude (modul AI) dan hasilnya dipakai sebagai rekomendasi.
 - Jika tidak, atau bila panggilan gagal, dipakai parser berbasis aturan (regex) sebagai fallback.
 Hasil selalu berupa REKOMENDASI yang dapat diperbaiki Trainer sebelum disimpan.

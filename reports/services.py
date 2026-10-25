@@ -12,7 +12,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from training.models import Capaian
 
-HEADERS = ["Badge", "Nama", "Proses", "Output", "Reject", "% Target"]
+HEADERS = ["Employee No", "Nama", "Proses", "Output", "Reject", "% Target"]
 
 
 def parse_periode(jenis, raw):

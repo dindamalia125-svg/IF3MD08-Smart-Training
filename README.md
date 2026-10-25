@@ -43,7 +43,7 @@ Tes otomatis: `python manage.py test` (46 tes).
 - **UC-02/03/04** kolom kosong, format email salah, kode/akun duplikat → pesan kesalahan; berhasil → konfirmasi + audit log.
 - **UC-05** tidak ada aktivitas pada filter → "Data tidak ditemukan". Audit log tidak bisa diubah/dihapus.
 - **UC-06** data kosong → dashboard kosong dengan keterangan.
-- **UC-07** teks kosong → diminta menempel data; baris gagal parsing ditandai; badge duplikat ditolak saat simpan.
+- **UC-07** teks kosong → diminta menempel data; baris gagal parsing ditandai; Employee No duplikat ditolak saat simpan.
 - **UC-08** isian bukan angka / negatif → error; capaian sudah ada → konfirmasi timpa (riwayat lama disimpan, `aktif=False`).
 - **UC-09** tidak ditemukan → pesan; lebih dari satu hasil → daftar untuk dipilih.
 - **UC-10** tidak disetujui / belum qualified → tombol Cetak nonaktif (divalidasi juga di server); PDF gagal → pesan + bisa coba lagi (transaksi di-rollback).

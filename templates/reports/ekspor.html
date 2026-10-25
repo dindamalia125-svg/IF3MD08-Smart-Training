@@ -24,7 +24,7 @@
   <div class="col">
     <h2 class="sec" style="margin-top:0"># Pratinjau Rekapitulasi Training {% if jenis == 'bulanan' %}Bulanan{% else %}Harian{% endif %}</h2>
     <table class="t">
-      <thead><tr><th>Badge</th><th>Nama</th><th>Proses</th><th>Output</th><th>Reject</th><th>% Target</th></tr></thead>
+      <thead><tr><th>Employee No</th><th>Nama</th><th>Proses</th><th>Output</th><th>Reject</th><th>% Target</th></tr></thead>
       <tbody>{% for r in rows %}<tr><td>{{ r.badge }}</td><td>{{ r.nama }}</td><td>{{ r.proses }}</td><td>{{ r.output }}</td><td>{{ r.reject }}</td><td>{{ r.persen }}%</td></tr>
       {% empty %}<tr><td colspan="6" class="muted">Tidak ada data pada periode ini.</td></tr>{% endfor %}</tbody>
     </table>

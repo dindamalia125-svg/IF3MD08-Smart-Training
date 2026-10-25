@@ -8,7 +8,7 @@ from master.models import Lini, Proses, Shift
 class Trainee(models.Model):
     """Karyawan/operator yang menjalani training (hasil UC-07)."""
 
-    badge = models.CharField("Nomor Badge", max_length=30, unique=True)
+    badge = models.CharField("Employee No", max_length=30, unique=True)
     nama = models.CharField(max_length=150)
     shift = models.ForeignKey(Shift, null=True, blank=True, on_delete=models.SET_NULL, related_name="trainees")
     lini = models.ForeignKey(Lini, null=True, blank=True, on_delete=models.SET_NULL, related_name="trainees")

@@ -34,7 +34,7 @@ class ManpowerTests(Base):
         make_trainee("TR-0098", "Maya Lama", self.shifts["B"])
         teks = "Andi Pratama - TR-0142 - A\nMaya Putri - TR-0098 - B\nSiti ???"
         r = self.client.post(reverse("training:manpower"), {"action": "proses", "teks": teks})
-        self.assertContains(r, "Nomor Badge sudah ada (duplikat), baris ditolak")
+        self.assertContains(r, "Employee No sudah ada (duplikat), baris ditolak")
         self.assertContains(r, "AI gagal memisahkan baris")
 
     def test_save_only_valid_rows(self):

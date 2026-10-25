@@ -26,7 +26,7 @@ from io import BytesIO
 
 # ---------------------------------------------------------------- UC-07
 def _annotate(rows, shift_codes):
-    """Tandai tiap baris: ok / gagal (AI tidak bisa memisah) / duplikat (badge sudah ada)."""
+    """Tandai tiap baris: ok / gagal (AI tidak bisa memisah) / duplikat (Employee No sudah ada)."""
     existing = set(Trainee.objects.values_list("badge", flat=True))
     seen = set()
     valid_shift = {c.upper(): c for c in shift_codes}
@@ -38,7 +38,7 @@ def _annotate(rows, shift_codes):
         if not (nama and badge and shift in valid_shift.values()):
             row.update(status="gagal", pesan="AI gagal memisahkan baris, perbaiki manual")
         elif badge in existing or badge in seen:
-            row.update(status="duplikat", pesan="Nomor Badge sudah ada (duplikat), baris ditolak")
+            row.update(status="duplikat", pesan="Employee No sudah ada (duplikat), baris ditolak")
         else:
             row.update(status="ok", pesan="OK")
             seen.add(badge)
@@ -77,7 +77,7 @@ def manpower(request):
                     saved += 1
             rejected = len(rows) - saved
             log(request.user, "Parsing manpower", "Data manpower",
-                f"{saved} baris disimpan, {rejected} baris ditolak (gagal parsing atau duplikat badge)")
+                f"{saved} baris disimpan, {rejected} baris ditolak (gagal parsing atau duplikat Employee No)")
             ctx["rows"] = rows
             ctx["saved"], ctx["rejected"] = saved, rejected
             ctx["teks"] = request.POST.get("teks", "")

@@ -15,7 +15,7 @@
 <form method="post" novalidate>{% csrf_token %}
   <input type="hidden" name="teks" value="{{ teks }}">
   <table class="t">
-    <thead><tr><th style="width:40px">No</th><th>Nama</th><th>Nomor Badge</th><th>Kode Shift</th><th>Status Baris</th></tr></thead>
+    <thead><tr><th style="width:40px">No</th><th>Nama</th><th>Employee No</th><th>Kode Shift</th><th>Status Baris</th></tr></thead>
     <tbody>{% for r in rows %}
       <tr {% if r.status == 'gagal' or r.status == 'duplikat' %}class="hl"{% endif %}>
         <td>{{ forloop.counter }}</td>
@@ -31,7 +31,7 @@
     <div class="alert success">✔ {{ saved }} baris berhasil disimpan{% if rejected %}, {{ rejected }} baris ditolak{% endif %}. Aktivitas tercatat di audit log.</div>
   {% else %}
     <div class="actions"><a class="btn" href="{% url 'training:manpower' %}">Batal</a><button class="btn primary" type="submit" name="action" value="simpan">Simpan Data</button></div>
-    <p class="muted">Baris yang gagal diparsing atau memiliki Nomor Badge duplikat akan ditolak saat disimpan. Perbaiki isian lalu simpan.</p>
+    <p class="muted">Baris yang gagal diparsing atau memiliki Employee No duplikat akan ditolak saat disimpan. Perbaiki isian lalu simpan.</p>
   {% endif %}
 </form>
 {% endif %}

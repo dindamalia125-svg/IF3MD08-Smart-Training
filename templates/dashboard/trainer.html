@@ -13,7 +13,7 @@
 {% if warnings %}
 <div class="alert warning">⚠ Perhatian: {{ warnings|length }} operator mendekati durasi maksimal training</div>
 <table class="t">
-  <thead><tr><th>No. Badge</th><th>Nama</th><th>Proses</th><th>Lama / Maks.</th><th>Indikator</th><th>Aksi</th></tr></thead>
+  <thead><tr><th>Employee No</th><th>Nama</th><th>Proses</th><th>Lama / Maks.</th><th>Indikator</th><th>Aksi</th></tr></thead>
   <tbody>{% for w in warnings %}
     <tr class="hl"><td>{{ w.pt.trainee.badge }}</td><td>{{ w.pt.trainee.nama }}</td><td>{{ w.pt.proses.nama }}</td>
       <td>{{ w.pt.lama_hari }} / {{ w.maks }} hari</td>
@@ -27,7 +27,7 @@
 {% if contracts %}
 <div class="alert warning">⚠ Perhatian: {{ contracts|length }} karyawan akan habis masa kontrak dalam {{ hari_kontrak }} hari</div>
 <table class="t">
-  <thead><tr><th>No. Badge</th><th>Nama</th><th>Kontrak Berakhir</th><th>Lokasi Proses Kerja</th><th>Shift</th><th>Aksi</th></tr></thead>
+  <thead><tr><th>Employee No</th><th>Nama</th><th>Kontrak Berakhir</th><th>Lokasi Proses Kerja</th><th>Shift</th><th>Aksi</th></tr></thead>
   <tbody>{% for c in contracts %}
     <tr class="hl"><td>{{ c.t.badge }}</td><td>{{ c.t.nama }}</td><td>{{ c.t.kontrak_berakhir|date:"d M Y" }} <span class="muted">({{ c.sisa }} hari lagi)</span></td>
       <td>{{ c.lokasi }}</td><td>{{ c.t.shift.kode|default:"-" }}</td>
