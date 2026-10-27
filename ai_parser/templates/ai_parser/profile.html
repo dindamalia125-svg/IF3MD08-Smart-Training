@@ -1,0 +1,16 @@
+{% extends "ai_parser/base.html" %}
+{% block title %}Profil Manpower | STA{% endblock %}
+{% block content %}
+<div class="top"><div><h1>{{ person.employee_name }}</h1><div class="muted">Emp No. {{ person.employee_number }} · {{ person.section_code }} / {{ person.section }}</div></div><a class="btn secondary" href="{% url 'ai_parser:manpower_list' %}">Kembali</a></div>
+<div class="panel"><table>
+<tr><th>Emp No.</th><td>{{ person.employee_number }}</td></tr>
+<tr><th>Emp Name</th><td>{{ person.employee_name }}</td></tr>
+<tr><th>DOC</th><td>{{ person.doc|date:"d M Y"|default:"—" }}</td></tr>
+<tr><th>Position</th><td>{{ person.position|default:"—" }}</td></tr>
+<tr><th>Section</th><td>{{ person.section_code }} / {{ person.section }}</td></tr>
+<tr><th>Supervisor</th><td>{{ person.supervisor|default:"—" }}</td></tr>
+<tr><th>Shift</th><td>{{ person.shift|default:"—" }}</td></tr>
+<tr><th>Status</th><td>{{ person.status|default:"—" }}</td></tr>
+<tr><th>Remarks</th><td>{{ person.remarks|default:"—" }}</td></tr>
+</table></div>
+{% endblock %}

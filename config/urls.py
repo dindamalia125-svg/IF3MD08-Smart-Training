@@ -10,4 +10,5 @@ urlpatterns = [
     path("trainer/", include("training.urls")),
     path("dashboard/", include("dashboard.urls")),
     path("laporan/", include("reports.urls")),
+    path("manpower/", include("ai_parser.urls")),
 ]

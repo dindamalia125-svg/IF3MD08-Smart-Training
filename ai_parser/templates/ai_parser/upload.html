@@ -1,0 +1,14 @@
+{% extends "ai_parser/base.html" %}
+{% block title %}Import Manpower | STA{% endblock %}
+{% block content %}
+<div class="top"><div><h1>Import Manpower Data</h1><div class="muted">Section 2700 / Haemo · Upload dokumen recruitment HR</div></div><a class="btn secondary" href="{% url 'ai_parser:manpower_list' %}">Kembali ke Manpower Data</a></div>
+<div class="panel">
+  <h3>Upload dokumen Word</h3>
+  <p class="muted">Parser akan membaca tabel, mengambil hanya Sect/Dept 2700 / Haemo, dan menampilkan preview sebelum penyimpanan.</p>
+ <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Upload Dokumen</button>
+</form>
+</div>
+{% endblock %}

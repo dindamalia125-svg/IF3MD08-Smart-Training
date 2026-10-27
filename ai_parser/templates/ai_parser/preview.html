@@ -1,0 +1,30 @@
+{% extends "ai_parser/base.html" %}
+{% block title %}Preview Import | STA{% endblock %}
+{% block content %}
+<div class="top"><div><h1>Preview AI Parser</h1><div class="muted">Periksa hasil parsing sebelum menyimpan ke Manpower.</div></div><a class="btn secondary" href="{% url 'ai_parser:upload_document' %}">Upload ulang</a></div>
+<div class="stats">
+  <div class="stat">Total baris terdeteksi<b>{{ result.summary.total_detected }}</b></div>
+  <div class="stat">Calon Haemo<b>{{ result.summary.haemo_candidates }}</b></div>
+  <div class="stat">Departemen lain diabaikan<b>{{ result.summary.other_departments }}</b></div>
+  <div class="stat">Perlu diperiksa<b>{{ result.summary.needs_review }}</b></div>
+</div>
+{% if result.summary.join_date %}<p class="muted">DOC terdeteksi: {{ result.summary.join_date }}</p>{% else %}<div class="notice">Tanggal DOC tidak terdeteksi. Nilai DOC akan kosong dan bisa ditinjau kemudian.</div>{% endif %}
+<div class="panel"><h3>Data yang akan diproses</h3><div class="table-wrap"><table>
+<thead><tr><th>Emp No.</th><th>Emp Name</th><th>DOC</th><th>Position</th><th>Section</th><th>Shift</th><th>Status</th><th>Remarks</th><th>Status Import</th></tr></thead>
+<tbody>
+{% for row in result.accepted %}
+<tr>
+<td>{{ row.employee_number }}</td><td>{{ row.employee_name }}</td><td>{{ row.doc|default:"—" }}</td><td>{{ row.position|default:"—" }}</td><td>{{ row.department_code }} / {{ row.department_name }}</td><td>{{ row.shift }}</td><td>{{ row.status|default:"—" }}</td><td>{{ row.remarks|default:"—" }}</td>
+<td>{% if row.already_exists %}<span class="bad">Sudah ada (duplikat)</span>{% else %}<span class="good">Siap diperiksa</span>{% endif %}</td>
+</tr>
+{% empty %}<tr><td colspan="9">Tidak ada data Haemo yang memenuhi syarat.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% if result.needs_review %}<div class="panel"><h3>Data perlu diperiksa</h3><ul>{% for item in result.needs_review %}<li>Baris {{ item.record.source_row }} — {{ item.reason }}</li>{% endfor %}</ul></div>{% endif %}
+{% if result.rejected %}<details class="panel"><summary>Baris departemen lain yang diabaikan ({{ result.rejected|length }})</summary><ul>{% for item in result.rejected %}<li>{{ item.employee_number }} — {{ item.department }}</li>{% endfor %}</ul></details>{% endif %}
+<div class="panel">
+  <form method="post" action="{% url 'ai_parser:confirm_import' %}">{% csrf_token %}
+    <p>Data akan disimpan setelah dikonfirmasi. Emp No yang sudah ada di database akan dilewati.</p>
+    <button class="btn" type="submit" {% if not result.accepted %}disabled{% endif %}>Konfirmasi Import ke Manpower</button>
+  </form>
+</div>
+{% endblock %}

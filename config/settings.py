@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     "training",
     "dashboard",
     "reports",
+    "ai_parser.apps.AiParserConfig",
 ]
 
 MIDDLEWARE = [
