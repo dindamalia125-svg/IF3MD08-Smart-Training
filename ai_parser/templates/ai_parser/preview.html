@@ -1,30 +1,48 @@
-{% extends "ai_parser/base.html" %}
-{% block title %}Preview Import | STA{% endblock %}
+{% extends "base.html" %}
+{% block title %}Preview Import Manpower{% endblock %}
 {% block content %}
-<div class="top"><div><h1>Preview AI Parser</h1><div class="muted">Periksa hasil parsing sebelum menyimpan ke Manpower.</div></div><a class="btn secondary" href="{% url 'ai_parser:upload_document' %}">Upload ulang</a></div>
-<div class="stats">
-  <div class="stat">Total baris terdeteksi<b>{{ result.summary.total_detected }}</b></div>
-  <div class="stat">Calon Haemo<b>{{ result.summary.haemo_candidates }}</b></div>
-  <div class="stat">Departemen lain diabaikan<b>{{ result.summary.other_departments }}</b></div>
-  <div class="stat">Perlu diperiksa<b>{{ result.summary.needs_review }}</b></div>
-</div>
-{% if result.summary.join_date %}<p class="muted">DOC terdeteksi: {{ result.summary.join_date }}</p>{% else %}<div class="notice">Tanggal DOC tidak terdeteksi. Nilai DOC akan kosong dan bisa ditinjau kemudian.</div>{% endif %}
-<div class="panel"><h3>Data yang akan diproses</h3><div class="table-wrap"><table>
-<thead><tr><th>Emp No.</th><th>Emp Name</th><th>DOC</th><th>Position</th><th>Section</th><th>Shift</th><th>Status</th><th>Remarks</th><th>Status Import</th></tr></thead>
-<tbody>
-{% for row in result.accepted %}
-<tr>
-<td>{{ row.employee_number }}</td><td>{{ row.employee_name }}</td><td>{{ row.doc|default:"—" }}</td><td>{{ row.position|default:"—" }}</td><td>{{ row.department_code }} / {{ row.department_name }}</td><td>{{ row.shift }}</td><td>{{ row.status|default:"—" }}</td><td>{{ row.remarks|default:"—" }}</td>
-<td>{% if row.already_exists %}<span class="bad">Sudah ada (duplikat)</span>{% else %}<span class="good">Siap diperiksa</span>{% endif %}</td>
-</tr>
-{% empty %}<tr><td colspan="9">Tidak ada data Haemo yang memenuhi syarat.</td></tr>{% endfor %}
-</tbody></table></div></div>
-{% if result.needs_review %}<div class="panel"><h3>Data perlu diperiksa</h3><ul>{% for item in result.needs_review %}<li>Baris {{ item.record.source_row }} — {{ item.reason }}</li>{% endfor %}</ul></div>{% endif %}
-{% if result.rejected %}<details class="panel"><summary>Baris departemen lain yang diabaikan ({{ result.rejected|length }})</summary><ul>{% for item in result.rejected %}<li>{{ item.employee_number }} — {{ item.department }}</li>{% endfor %}</ul></details>{% endif %}
-<div class="panel">
-  <form method="post" action="{% url 'ai_parser:confirm_import' %}">{% csrf_token %}
-    <p>Data akan disimpan setelah dikonfirmasi. Emp No yang sudah ada di database akan dilewati.</p>
-    <button class="btn" type="submit" {% if not result.accepted %}disabled{% endif %}>Konfirmasi Import ke Manpower</button>
-  </form>
-</div>
+<h1 class="title"><i class="dot"></i> Preview Hasil Parsing</h1>
+<p class="muted">Periksa dan perbaiki data. Belum ada yang disimpan. Baris bertanda ⚠ perlu diperbaiki lebih dulu; baris yang tidak dicentang tidak diimpor.</p>
+<p>
+  Total baris: <b>{{ result.summary.total_detected }}</b> ·
+  Calon Haemo: <b>{{ result.summary.haemo_candidates }}</b> ·
+  Departemen lain diabaikan: <b>{{ result.summary.other_departments }}</b> ·
+  Perlu diperiksa: <b>{{ result.summary.needs_review }}</b> ·
+  Header dikenali oleh: <b>{{ result.summary.header_source }}</b>
+</p>
+{% if result.summary.join_date %}<p class="muted">DOC terdeteksi: {{ result.summary.join_date }}</p>{% endif %}
+{% for w in result.warnings %}<div class="alert warning" role="status">⚠ {{ w }}</div>{% endfor %}
+
+<form method="post" action="{% url 'ai_parser:confirm_import' %}" novalidate>{% csrf_token %}
+  <input type="hidden" name="count" value="{{ rows|length }}">
+  <div style="overflow-x:auto"><table class="t">
+    <thead><tr><th>Import</th><th>Emp No.</th><th>Emp Name</th><th>DOC</th><th>Position</th><th>Sect/Dept</th><th>Shift</th><th>Status</th><th>Remarks</th><th>Pemeriksaan</th></tr></thead>
+    <tbody>
+    {% for item in rows %}{% with r=item.record i=forloop.counter0 %}
+      <tr {% if item.reason or item.already_exists %}class="hl"{% endif %}>
+        <td><input type="checkbox" name="pilih-{{ i }}" value="1" {% if item.checked %}checked{% endif %} aria-label="Import baris {{ forloop.counter }}"></td>
+        <td><input type="text" name="employee_number-{{ i }}" value="{{ r.employee_number }}" size="8"></td>
+        <td><input type="text" name="employee_name-{{ i }}" value="{{ r.employee_name }}"></td>
+        <td><input type="date" name="doc-{{ i }}" value="{{ r.doc|default:'' }}"></td>
+        <td><input type="text" name="position-{{ i }}" value="{{ r.position }}" size="10"></td>
+        <td><input type="text" name="department-{{ i }}" value="{% if r.department_code %}{{ r.department_code }} / {{ r.department_name }}{% else %}{{ r.department_name }}{% endif %}" size="12"></td>
+        <td><input type="text" name="shift-{{ i }}" value="{{ r.shift }}" list="shift-list" size="8"></td>
+        <td><input type="text" name="status-{{ i }}" value="{{ r.status }}" size="9"></td>
+        <td><input type="text" name="remarks-{{ i }}" value="{{ r.remarks }}" size="12"></td>
+        <td>{% if item.reason %}<span class="badge warn">⚠ {{ item.reason }}</span>
+            {% elif item.already_exists %}<span class="badge bad">Emp No sudah ada di database (duplikat)</span>
+            {% else %}<span class="badge ok">OK</span>{% endif %}</td>
+      </tr>{% endwith %}
+    {% empty %}<tr><td colspan="10">Tidak ada data Haemo pada dokumen ini.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+  <datalist id="shift-list">{% for s in shift_options %}<option value="{{ s }}">{% endfor %}</datalist>
+  {% if result.rejected %}
+  <details style="margin-top:12px"><summary>{{ result.rejected|length }} baris departemen lain diabaikan</summary>
+    <ul>{% for item in result.rejected %}<li>{{ item.employee_number }} — {{ item.department }}</li>{% endfor %}</ul>
+  </details>{% endif %}
+  <div class="actions"><a class="btn" href="{% url 'ai_parser:upload_document' %}">Upload ulang</a>
+  <button class="btn primary" type="submit" {% if not rows %}disabled{% endif %}>Konfirmasi Import ke Manpower</button></div>
+  <p class="muted">Setiap baris diperiksa ulang saat konfirmasi. Emp No yang sudah ada di database dilewati.</p>
+</form>
 {% endblock %}

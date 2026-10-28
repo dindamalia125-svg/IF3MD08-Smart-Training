@@ -5,6 +5,7 @@ from django.utils import timezone
 SUPER_ADMIN_NAV = [
     ("Dashboard", "dashboard:super_admin", "/dashboard/admin/"),
     ("Manajemen Pengguna", "accounts:user_list", "/pengguna/"),
+    ("Manpower Data", "ai_parser:manpower_list", "/manpower/"),
     ("Master Proses", "master:proses_list", "/master/proses/"),
     ("Master Shift & Lini", "master:shift_lini", "/master/shift-lini/"),
     ("Audit Log", "accounts:audit_log", "/audit-log/"),
@@ -12,6 +13,7 @@ SUPER_ADMIN_NAV = [
 TRAINER_NAV = [
     ("Dashboard", "dashboard:trainer", "/dashboard/trainer/"),
     ("Input Manpower (AI)", "training:manpower", "/trainer/manpower/"),
+    ("Manpower Data", "ai_parser:manpower_list", "/manpower/"),
     ("Input Capaian", "training:capaian", "/trainer/capaian/"),
     ("Penelusuran Trainee", "training:penelusuran", "/trainer/penelusuran/"),
     ("Sertifikat", "training:sertifikat", "/trainer/sertifikat/"),

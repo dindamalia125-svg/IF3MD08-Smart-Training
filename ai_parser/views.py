@@ -1,171 +1,221 @@
 import json
 import logging
 from datetime import date
-from pathlib import Path
-from tempfile import NamedTemporaryFile
+from zipfile import BadZipFile
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from docx.opc.exceptions import PackageNotFoundError
 
 from accounts.audit import log
-from accounts.decorators import trainer_required
+from accounts.decorators import role_required
 from master.models import Shift
 from training.models import RiwayatShift, Trainee
 
 from .forms import DocumentUploadForm
 from .models import Manpower
-from .word_parser import TARGET_DEPT_CODE, parse_docx
+from .word_parser import TARGET_DEPT_CODE, split_department, parse_docx, validate_record
 
 logger = logging.getLogger(__name__)
 
+# Halaman Manpower hanya untuk Super Admin dan Trainer.
+staff_required = role_required("SUPER_ADMIN", "TRAINER")
+MAX_ROWS = 2000
+EXTRA_SHIFTS = ("Normal", "Non-shift")  # dipakai dokumen HR; tidak ada di master Shift
 
-def _create_trainee(row, doc_date):
-    """Buat Trainee + RiwayatShift dari baris impor. Return True bila dibuat."""
-    emp_no = row["employee_number"].strip().upper()
+
+def shift_options():
+    return list(EXTRA_SHIFTS) + list(Shift.objects.values_list("kode", flat=True))
+
+
+def _create_trainee(rec, doc_date):
+    """Buat Trainee + RiwayatShift dari data impor. Return True bila dibuat."""
+    emp_no = rec["employee_number"].strip().upper()
     if Trainee.objects.filter(emp_no__iexact=emp_no).exists():
         return False
-    shift = Shift.objects.filter(kode__iexact=(row.get("shift") or "").strip()).first()
+    shift = Shift.objects.filter(kode__iexact=(rec.get("shift") or "").strip()).first()
     mulai = doc_date or timezone.localdate()
-    t = Trainee.objects.create(emp_no=emp_no, nama=row["employee_name"], shift=shift, mulai_training=mulai)
+    trainee = Trainee.objects.create(emp_no=emp_no, nama=rec["employee_name"], shift=shift, mulai_training=mulai)
     if shift:
-        RiwayatShift.objects.create(trainee=t, shift=shift, mulai=mulai)
+        RiwayatShift.objects.create(trainee=trainee, shift=shift, mulai=mulai)
     return True
 
 
 def _sync_trainee_shift(emp_no, kode):
-    t = Trainee.objects.filter(emp_no__iexact=emp_no).first()
+    """Samakan shift Trainee dengan perubahan shift di Manpower (riwayat shift ikut dicatat)."""
+    trainee = Trainee.objects.filter(emp_no__iexact=emp_no).first()
     shift = Shift.objects.filter(kode__iexact=kode).first()
-    if not t or not shift or t.shift_id == shift.pk:
+    if not trainee or not shift or trainee.shift_id == shift.pk:
         return
     today = timezone.localdate()
     with transaction.atomic():
-        t.riwayat_shift.filter(selesai__isnull=True).update(selesai=today)
-        RiwayatShift.objects.create(trainee=t, shift=shift, lini=t.lini, mulai=today)
-        t.shift = shift
-        t.save(update_fields=["shift"])
+        trainee.riwayat_shift.filter(selesai__isnull=True).update(selesai=today)
+        RiwayatShift.objects.create(trainee=trainee, shift=shift, lini=trainee.lini, mulai=today)
+        trainee.shift = shift
+        trainee.save(update_fields=["shift"])
 
 
-@trainer_required
+@staff_required
 def manpower_list(request):
     query = request.GET.get("q", "").strip()
     manpower = Manpower.objects.filter(section_code=TARGET_DEPT_CODE)
     if query:
-        manpower = manpower.filter(
-            Q(employee_number__icontains=query) | Q(employee_name__icontains=query)
-        )
+        manpower = manpower.filter(Q(employee_number__icontains=query) | Q(employee_name__icontains=query))
+    supervisors = (
+        Manpower.objects.exclude(supervisor="").order_by("supervisor")
+        .values_list("supervisor", flat=True).distinct()
+    )
     return render(request, "ai_parser/manpower_list.html", {
         "manpower": manpower,
         "query": query,
         "total": manpower.count(),
+        "shift_options": shift_options(),
+        "supervisor_options": list(supervisors),
     })
 
 
-@trainer_required
+@staff_required
 def upload_document(request):
     if request.method == "POST":
         form = DocumentUploadForm(request.POST, request.FILES)
         if form.is_valid():
             uploaded = form.cleaned_data["document"]
-            suffix = Path(uploaded.name).suffix.lower()
-            temp_path = None
             try:
-                with NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-                    for chunk in uploaded.chunks():
-                        tmp.write(chunk)
-                    temp_path = tmp.name
-                result = parse_docx(temp_path)
+                uploaded.seek(0)
+                result = parse_docx(uploaded)
+                # Hasil parsing hanya disimpan di sesi; belum masuk database sebelum dikonfirmasi.
                 request.session["manpower_import_preview"] = result
-                request.session.modified = True
                 return redirect("ai_parser:preview_import")
-            except Exception as exc:
-                logger.exception("Gagal memproses upload dokumen Word")
-                form.add_error("document", f"Dokumen gagal diproses: {type(exc).__name__}: {exc}")
-            finally:
-                if temp_path and Path(temp_path).exists():
-                    Path(temp_path).unlink()
+            except ValueError as exc:  # tabel/header tidak ditemukan
+                form.add_error("document", str(exc))
+            except (PackageNotFoundError, BadZipFile):
+                form.add_error("document", "File rusak atau bukan dokumen Word (.docx) yang valid.")
+            except Exception:
+                logger.exception("Gagal memproses upload dokumen Word: %s", uploaded.name)
+                form.add_error("document", "Dokumen gagal diproses. Periksa isi file atau hubungi admin.")
     else:
         form = DocumentUploadForm()
     return render(request, "ai_parser/upload.html", {"form": form})
 
 
-@trainer_required
+@staff_required
 def preview_import(request):
     result = request.session.get("manpower_import_preview")
     if not result:
         messages.warning(request, "Tidak ada hasil parsing. Silakan upload dokumen.")
         return redirect("ai_parser:upload_document")
 
-    nomor = [row["employee_number"] for row in result["accepted"]]
-    existing = set(Manpower.objects.filter(employee_number__in=nomor).values_list("employee_number", flat=True))
-    existing |= {e.upper() for e in Trainee.objects.filter(emp_no__in=nomor).values_list("emp_no", flat=True)}
-    for row in result["accepted"]:
-        row["already_exists"] = row["employee_number"].upper() in existing
-    return render(request, "ai_parser/preview.html", {"result": result})
+    # Satu tabel yang dapat diedit: baris valid dan baris yang perlu diperbaiki.
+    rows = [{"record": r, "reason": ""} for r in result["accepted"]] + result["needs_review"]
+    rows.sort(key=lambda item: item["record"].get("source_row") or 0)
+    existing = set(
+        Manpower.objects.filter(employee_number__in=[i["record"]["employee_number"] for i in rows])
+        .values_list("employee_number", flat=True)
+    )
+    existing |= {  # Emp No yang sudah menjadi Trainee juga ditandai duplikat
+        e.upper() for e in Trainee.objects.filter(
+            emp_no__in=[i["record"]["employee_number"] for i in rows]).values_list("emp_no", flat=True)
+    }
+    for item in rows:
+        item["already_exists"] = item["record"]["employee_number"].upper() in existing
+        item["checked"] = not item["reason"] and not item["already_exists"]
+    return render(request, "ai_parser/preview.html", {
+        "result": result, "rows": rows, "shift_options": shift_options(),
+    })
 
 
-@trainer_required
+@staff_required
 @require_POST
 def confirm_import(request):
-    result = request.session.get("manpower_import_preview")
-    if not result:
+    if not request.session.get("manpower_import_preview"):
         messages.error(request, "Sesi preview tidak ditemukan. Silakan upload ulang.")
         return redirect("ai_parser:upload_document")
+    try:
+        count = min(int(request.POST.get("count", "0")), MAX_ROWS)
+    except ValueError:
+        count = 0
 
-    imported, duplicates, invalid, trainees = 0, 0, 0, 0
-    doc_iso = (result.get("summary") or {}).get("join_date")
+    imported = duplicates = invalid = skipped = trainees = 0
+    seen: set = set()
     with transaction.atomic():
-        for row in result["accepted"]:
-            if row.get("department_code") != TARGET_DEPT_CODE:
-                invalid += 1
+        for i in range(count):
+            if request.POST.get(f"pilih-{i}") != "1":
+                skipped += 1
                 continue
-            raw_doc = row.get("doc") or doc_iso
-            doc_date = date.fromisoformat(raw_doc) if raw_doc else None
-            emp_no = row["employee_number"].strip().upper()
-            if Manpower.objects.filter(employee_number=emp_no).exists():
+            code, name = split_department(request.POST.get(f"department-{i}", ""))
+            # Data hasil edit pengguna divalidasi ulang oleh aturan yang sama dengan parser.
+            rec, reasons = validate_record({
+                "employee_number": request.POST.get(f"employee_number-{i}", ""),
+                "employee_name": request.POST.get(f"employee_name-{i}", ""),
+                "department_code": code, "department_name": name,
+                "doc": request.POST.get(f"doc-{i}", ""),
+                "position": request.POST.get(f"position-{i}", ""),
+                "shift": request.POST.get(f"shift-{i}", ""),
+                "status": request.POST.get(f"status-{i}", ""),
+                "remarks": request.POST.get(f"remarks-{i}", ""),
+            }, seen)
+            if reasons:
+                if reasons == ["Emp No duplikat dalam file"]:
+                    duplicates += 1
+                else:
+                    invalid += 1
+                continue
+            rec["employee_number"] = rec["employee_number"].upper()
+            if Manpower.objects.filter(employee_number=rec["employee_number"]).exists():
                 duplicates += 1
                 continue
             try:
                 with transaction.atomic():
                     Manpower.objects.create(
-                        employee_number=emp_no,
-                        employee_name=row["employee_name"],
-                        doc=doc_date,
-                        position=row.get("position", ""),
-                        section_code="2700",
+                        employee_number=rec["employee_number"],
+                        employee_name=rec["employee_name"],
+                        doc=date.fromisoformat(rec["doc"]) if rec["doc"] else None,
+                        position=rec["position"],
+                        section_code=TARGET_DEPT_CODE,
                         section="Haemo",
                         supervisor="",
-                        shift=row.get("shift") or "Normal",
-                        status=row.get("status", ""),
-                        remarks=row.get("remarks", ""),
+                        shift=rec["shift"],
+                        status=rec["status"],
+                        remarks=rec["remarks"],
                     )
-                    if _create_trainee(row, doc_date):
+                    if _create_trainee(rec, date.fromisoformat(rec["doc"]) if rec["doc"] else None):
                         trainees += 1
-                    imported += 1
+                imported += 1
             except IntegrityError:
+                logger.warning("Duplikat saat insert Emp No %s", rec["employee_number"])
                 duplicates += 1
 
     request.session.pop("manpower_import_preview", None)
-    log(request.user, "Parsing manpower", "Data manpower",
-        f"Impor Word: {imported} disimpan ({trainees} masuk Trainee), {duplicates} duplikat, {invalid} tidak valid")
+    detail = (f"{imported} disimpan ({trainees} masuk Trainee), {duplicates} duplikat dilewati, {invalid} tidak valid, "
+              f"{skipped} tidak dipilih (import dokumen Word)")
+    log(request.user, "Parsing manpower", "Data Manpower Haemo", detail)
+    logger.info("Import manpower oleh %s: %s", request.user.username, detail)
     messages.success(
         request,
-        f"Import selesai. Berhasil: {imported}; duplikat dilewati: {duplicates}; baris tidak valid: {invalid}.",
+        f"Import selesai. Berhasil: {imported}; duplikat dilewati: {duplicates}; "
+        f"tidak valid: {invalid}; tidak dipilih: {skipped}.",
     )
     return redirect("ai_parser:manpower_list")
 
 
-@trainer_required
+@login_required
 @require_POST
 def update_assignment(request, pk):
+    # Endpoint JSON: kegagalan akses dijawab 403 JSON, bukan redirect HTML.
+    if request.user.role not in ("SUPER_ADMIN", "TRAINER"):
+        return JsonResponse({"ok": False, "error": "Akses hanya untuk Super Admin dan Trainer."}, status=403)
     manpower = get_object_or_404(Manpower, pk=pk, section_code=TARGET_DEPT_CODE)
     try:
         payload = json.loads(request.body.decode("utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "error": "Request tidak valid."}, status=400)
+    if not isinstance(payload, dict):
         return JsonResponse({"ok": False, "error": "Request tidak valid."}, status=400)
 
     field = payload.get("field")
@@ -174,18 +224,21 @@ def update_assignment(request, pk):
         return JsonResponse({"ok": False, "error": "Field tidak boleh diubah."}, status=400)
     if len(value) > 120:
         return JsonResponse({"ok": False, "error": "Nilai terlalu panjang."}, status=400)
-    if field == "shift" and value not in {"Normal", "A", "B", "C", "Non-shift"}:
+    if field == "shift" and value not in shift_options():
         return JsonResponse({"ok": False, "error": "Pilihan shift tidak valid."}, status=400)
 
-    setattr(manpower, field, value)
-    manpower.save(update_fields=[field, "updated_at"])
-    if field == "shift":
-        _sync_trainee_shift(manpower.employee_number, value)
-    log(request.user, "Ubah data", "Manpower", f"{manpower.employee_number} {field} → {value or '-'}")
+    old = getattr(manpower, field)
+    if old != value:
+        setattr(manpower, field, value)
+        manpower.save(update_fields=[field, "updated_at"])
+        if field == "shift":
+            _sync_trainee_shift(manpower.employee_number, value)
+        log(request.user, "Ubah data", "Data Manpower Haemo",
+            f"Emp No {manpower.employee_number}: {field} '{old}' -> '{value}'")
     return JsonResponse({"ok": True, "field": field, "value": value})
 
 
-@trainer_required
+@staff_required
 def manpower_profile(request, pk):
     manpower = get_object_or_404(Manpower, pk=pk, section_code=TARGET_DEPT_CODE)
     return render(request, "ai_parser/profile.html", {"person": manpower})
