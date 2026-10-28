@@ -14,7 +14,7 @@ from django.conf import settings
 
 EMP_NO_RE = re.compile(r"\b([A-Za-z]{1,4}-?\d{2,6})\b")
 SPLIT_RE = re.compile(r"\s*(?:[-–—,;|\t]|\s{2,})\s*")
-
+MAX_CHARS = 20000
 
 def _rule_based(text, shift_codes):
     rows = []
