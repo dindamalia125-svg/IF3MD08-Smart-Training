@@ -20,6 +20,7 @@ from training.models import RiwayatShift, Trainee
 
 from .forms import DocumentUploadForm
 from .models import Manpower
+from .pdf_parser import parse_pdf
 from .word_parser import TARGET_DEPT_CODE, split_department, parse_docx, validate_record
 
 logger = logging.getLogger(__name__)
@@ -88,7 +89,8 @@ def upload_document(request):
             uploaded = form.cleaned_data["document"]
             try:
                 uploaded.seek(0)
-                result = parse_docx(uploaded)
+                is_pdf = uploaded.name.lower().endswith(".pdf")
+                result = parse_pdf(uploaded) if is_pdf else parse_docx(uploaded)
                 # Hasil parsing hanya disimpan di sesi; belum masuk database sebelum dikonfirmasi.
                 request.session["manpower_import_preview"] = result
                 return redirect("ai_parser:preview_import")
@@ -97,7 +99,7 @@ def upload_document(request):
             except (PackageNotFoundError, BadZipFile):
                 form.add_error("document", "File rusak atau bukan dokumen Word (.docx) yang valid.")
             except Exception:
-                logger.exception("Gagal memproses upload dokumen Word: %s", uploaded.name)
+                logger.exception("Gagal memproses upload dokumen: %s", uploaded.name)
                 form.add_error("document", "Dokumen gagal diproses. Periksa isi file atau hubungi admin.")
     else:
         form = DocumentUploadForm()
@@ -193,7 +195,7 @@ def confirm_import(request):
 
     request.session.pop("manpower_import_preview", None)
     detail = (f"{imported} disimpan ({trainees} masuk Trainee), {duplicates} duplikat dilewati, {invalid} tidak valid, "
-              f"{skipped} tidak dipilih (import dokumen Word)")
+              f"{skipped} tidak dipilih (import dokumen Word/PDF)")
     log(request.user, "Parsing manpower", "Data Manpower Haemo", detail)
     logger.info("Import manpower oleh %s: %s", request.user.username, detail)
     messages.success(

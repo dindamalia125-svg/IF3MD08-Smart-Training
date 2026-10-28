@@ -2,6 +2,9 @@
 {% block title %}Input Manpower (AI){% endblock %}
 {% block content %}
 <h1 class="title"><i class="dot"></i> Input Data Manpower dengan Parsing AI</h1>
+<h2 class="sec">Unggah dokumen recruitment (Word / PDF)</h2>
+{% include "partials/dropzone.html" %}
+<h2 class="sec">Atau tempel teks manual</h2>
 <form method="post" novalidate>{% csrf_token %}
   <label for="teks">Tempel daftar manpower dari HR</label>
   <textarea id="teks" name="teks" rows="6" placeholder="Andi Pratama - TR-0142 - A&#10;Maya Putri - TR-0098 - B&#10;Rudi Hartono - TR-0177 - 3x2">{{ teks }}</textarea>

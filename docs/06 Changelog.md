@@ -11,3 +11,6 @@
 - Pesan file kosong pada form upload kini "File kosong." (sebelumnya tertimpa pesan bawaan Django).
 - Menambah `LOGGING` (logger `ai_parser` ke konsol dan `logs/sta.log`); folder `logs/` masuk `.gitignore`.
 - Memperbaiki tes `test_ai_cannot_override_rules_or_reuse_fields` (data AI tiruan tidak konsisten dengan hasil yang diharapkan). Tidak ada migrasi baru.
+- Halaman Input Manpower (AI) dan Import Manpower: area drag & drop file Word (.docx) atau PDF digital (maks. 10 MB). File langsung diparsing, lalu preview menampilkan karyawan per section (2700 / Haemo diproses, section lain hanya ditampilkan dan tidak diimpor).
+- `ai_parser/pdf_parser.py` (pypdf) baru; `word_parser.build_result` dipakai bersama oleh jalur Word dan PDF (validasi, filter section, duplikasi sama). PDF scan, terenkripsi, atau rusak ditolak dengan pesan jelas. Tidak ada migrasi baru.
+

@@ -13,6 +13,20 @@
 {% if result.summary.join_date %}<p class="muted">DOC terdeteksi: {{ result.summary.join_date }}</p>{% endif %}
 {% for w in result.warnings %}<div class="alert warning" role="status">⚠ {{ w }}</div>{% endfor %}
 
+<h2 class="sec">Pemisahan karyawan per section</h2>
+<div class="sec-grid">
+  {% for g in result.sections %}
+  <div class="sec-card {% if g.is_target %}target{% endif %}">
+    <span>{{ g.label }}</span><b>{{ g.count }}</b>
+    <span class="muted">{% if g.is_target %}diproses untuk import{% else %}tidak diimpor{% endif %}</span>
+  </div>{% empty %}<p class="muted">Tidak ada karyawan terdeteksi.</p>{% endfor %}
+</div>
+{% for g in result.sections %}{% if not g.is_target %}
+<details style="margin-bottom:8px"><summary>{{ g.label }} · {{ g.count }} karyawan (tidak diimpor)</summary>
+  <ul>{% for e in g.employees %}<li>{{ e.employee_number }} — {{ e.employee_name }}{% if e.position %} ({{ e.position }}){% endif %}</li>{% endfor %}</ul>
+</details>{% endif %}{% endfor %}
+
+<h2 class="sec">Data Haemo yang akan diimpor</h2>
 <form method="post" action="{% url 'ai_parser:confirm_import' %}" novalidate>{% csrf_token %}
   <input type="hidden" name="count" value="{{ rows|length }}">
   <div style="overflow-x:auto"><table class="t">
@@ -37,10 +51,6 @@
     </tbody>
   </table></div>
   <datalist id="shift-list">{% for s in shift_options %}<option value="{{ s }}">{% endfor %}</datalist>
-  {% if result.rejected %}
-  <details style="margin-top:12px"><summary>{{ result.rejected|length }} baris departemen lain diabaikan</summary>
-    <ul>{% for item in result.rejected %}<li>{{ item.employee_number }} — {{ item.department }}</li>{% endfor %}</ul>
-  </details>{% endif %}
   <div class="actions"><a class="btn" href="{% url 'ai_parser:upload_document' %}">Upload ulang</a>
   <button class="btn primary" type="submit" {% if not rows %}disabled{% endif %}>Konfirmasi Import ke Manpower</button></div>
   <p class="muted">Setiap baris diperiksa ulang saat konfirmasi. Emp No yang sudah ada di database dilewati.</p>

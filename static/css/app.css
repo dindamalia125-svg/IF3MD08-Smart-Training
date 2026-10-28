@@ -62,3 +62,18 @@ body.login{display:flex;justify-content:center;padding-top:60px}.login-card{widt
 .login-card .meta{display:flex;justify-content:space-between;align-items:center;margin:14px 0}.login-card .meta label{margin:0;font-weight:400;display:flex;gap:6px;align-items:center}
 .login-card .btn{width:100%;padding:11px}.login-card .foot{text-align:center;color:#888;font-size:10px;margin-top:40px}
 @media(max-width:720px){.greet{flex-direction:column}.grid2{grid-template-columns:1fr}}
+
+/* Area drag & drop dokumen recruitment */
+.dropzone{position:relative;border:2px dashed #9bb7e0;background:#f5f9ff;border-radius:8px;padding:26px 16px;text-align:center;transition:background .15s,border-color .15s}
+.dropzone.over{background:#e4efff;border-color:var(--primary)}
+.dropzone.busy{opacity:.7;pointer-events:none}
+.dropzone:focus-within{outline:2px solid var(--primary);outline-offset:2px}
+.dz-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.dz-label{display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none}
+.dz-icon{font-size:26px;color:var(--primary)}
+.dz-status{margin:8px 0 0;min-height:1.2em;font-size:11px;color:var(--ok-tx)}
+.dz-status.err{color:var(--err-tx)}
+.sec-grid{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 14px}
+.sec-card{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:8px 12px;min-width:170px}
+.sec-card.target{border-color:var(--ok-bd);background:var(--ok-bg)}
+.sec-card b{font-size:18px;display:block}

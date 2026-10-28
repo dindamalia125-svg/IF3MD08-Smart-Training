@@ -1,0 +1,16 @@
+{# Area drag & drop dokumen recruitment (Word / PDF). Dikirim ke alur import Manpower: parsing -> preview per section -> konfirmasi. #}
+{% load static %}
+<form method="post" action="{% url 'ai_parser:upload_document' %}" enctype="multipart/form-data" id="dz-form" novalidate>{% csrf_token %}
+  <div class="dropzone" id="dz" data-max-mb="10" tabindex="-1">
+    <input type="file" name="document" id="dz-input" accept=".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="dz-input">
+    <label for="dz-input" class="dz-label">
+      <span class="dz-icon" aria-hidden="true">⬆</span>
+      <strong>Tarik file Word atau PDF ke sini</strong>
+      <span class="muted">atau klik untuk memilih file (.docx / .pdf, maks. 10 MB)</span>
+    </label>
+    <p class="dz-status" id="dz-status" role="status" aria-live="polite"></p>
+  </div>
+  <p class="muted">Sistem membaca tabel recruitment, memisahkan karyawan per Sect/Dept, dan hanya 2700 / Haemo yang diimpor. Tidak ada data yang disimpan sebelum Anda mengonfirmasi preview.</p>
+  <noscript><div class="right"><button class="btn primary" type="submit">Upload &amp; Parse</button></div></noscript>
+</form>
+<script src="{% static 'js/dropzone.js' %}" defer></script>

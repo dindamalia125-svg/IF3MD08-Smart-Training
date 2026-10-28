@@ -67,7 +67,10 @@ def clean(value) -> str:
 
 # ----------------------------------------------------------------- tanggal DOC
 def extract_join_date(doc: Document):
-    text = "\n".join(p.text for p in doc.paragraphs)
+    return extract_join_date_from_text("\n".join(p.text for p in doc.paragraphs))
+
+
+def extract_join_date_from_text(text: str):
     keys = r"(?:shall\s+join|will\s+join|join\s+date|date\s+of\s+commencement|commencement\s+date)"
     patterns = [
         rf"\b{keys}\s*[:\-]?\s*([A-Za-z]+\s+\d{{1,2}}(?:st|nd|rd|th)?\s*,?\s+\d{{4}})",
@@ -183,6 +186,83 @@ def _header_map(cells: list[str], ai_mapper, warnings: list[str]):
     return None, ""
 
 
+def build_result(raw_rows: list[dict], join_date, header_source: str, warnings: list[str]) -> dict:
+    """Validasi baris mentah (dari Word maupun PDF) dan pisahkan per section.
+
+    raw_rows: dict dengan kunci employee_number, employee_name, gender, department (teks Sect/Dept
+    apa adanya), shift, position, status, remarks, source_row. Keputusan data hanya dibuat di sini
+    oleh aturan deterministik, apa pun sumber dokumennya.
+    """
+    accepted, rejected, needs_review = [], [], []
+    sections: dict[tuple, dict] = {}
+    seen: set = set()
+
+    for raw in raw_rows:
+        code, name = split_department(raw.get("department", ""))
+        label = f"{code} / {name}" if code else "Tidak dikenali"
+        group = sections.setdefault((code, name.casefold() if code else ""), {
+            "code": code, "name": name if code else "", "label": label,
+            "is_target": code == TARGET_DEPT_CODE and name.casefold() == TARGET_DEPT_NAME, "employees": [],
+        })
+        group["employees"].append({
+            "employee_number": clean(raw.get("employee_number", "")),
+            "employee_name": clean(raw.get("employee_name", "")),
+            "position": clean(raw.get("position", "")),
+        })
+        record = {
+            "employee_number": raw.get("employee_number", ""),
+            "employee_name": raw.get("employee_name", ""),
+            "gender": raw.get("gender", ""),
+            "department_code": code,
+            "department_name": name,
+            "shift": raw.get("shift", ""),
+            "position": raw.get("position", ""),
+            "status": raw.get("status", ""),
+            "remarks": raw.get("remarks", ""),
+            "doc": join_date,
+            "source_row": raw.get("source_row"),
+        }
+        if code and code != TARGET_DEPT_CODE:  # departemen lain: tidak diimpor
+            rejected.append({
+                "employee_number": clean(record["employee_number"]),
+                "employee_name": clean(record["employee_name"]),
+                "position": clean(record["position"]),
+                "department": raw.get("department", ""),
+                "reason": "Bukan section Haemo",
+            })
+            continue
+        record, reasons = validate_record(record, seen)
+        if reasons:
+            needs_review.append({"record": record, "reason": "; ".join(reasons)})
+        else:
+            accepted.append(record)
+
+    if not join_date:
+        warnings.append("Tanggal DOC tidak ditemukan di dokumen; isi pada preview bila diperlukan.")
+    ordered = sorted(sections.values(), key=lambda g: (not g["is_target"], g["label"]))
+    for g in ordered:
+        g["count"] = len(g["employees"])
+    total_rows = len(raw_rows)
+    logger.info("Parsing selesai: total=%s haemo=%s lain=%s review=%s header=%s sections=%s",
+                total_rows, len(accepted), len(rejected), len(needs_review), header_source, len(ordered))
+
+    return {
+        "summary": {
+            "total_detected": total_rows,
+            "haemo_candidates": len(accepted),
+            "other_departments": len(rejected),
+            "needs_review": len(needs_review),
+            "join_date": join_date,
+            "header_source": header_source,
+        },
+        "sections": ordered,
+        "accepted": accepted,
+        "rejected": rejected,
+        "needs_review": needs_review,
+        "warnings": warnings,
+    }
+
+
 def parse_docx(file, ai_mapper="default") -> dict:
     """Baca tabel recruitment. `file` boleh path atau file-like (UploadedFile).
 
@@ -193,9 +273,8 @@ def parse_docx(file, ai_mapper="default") -> dict:
         ai_mapper = map_headers_with_ai
     doc = Document(file)
     join_date = extract_join_date(doc)
-    accepted, rejected, needs_review, warnings = [], [], [], []
-    seen: set = set()
-    total_rows = 0
+    warnings: list[str] = []
+    raw_rows: list[dict] = []
     found_table = False
     header_source = "aturan"
 
@@ -217,55 +296,11 @@ def parse_docx(file, ai_mapper="default") -> dict:
             values = [clean(cell.text) for cell in row.cells]
             if not any(values):
                 continue
-            total_rows += 1
             raw = {name: values[i] for i, name in enumerate(headers) if name and i < len(values)}
-            code, name = split_department(raw.get("department", ""))
-            record = {
-                "employee_number": raw.get("employee_number", ""),
-                "employee_name": raw.get("employee_name", ""),
-                "gender": raw.get("gender", ""),
-                "department_code": code,
-                "department_name": name,
-                "shift": raw.get("shift", ""),
-                "position": raw.get("position", ""),
-                "status": raw.get("status", ""),
-                "remarks": raw.get("remarks", ""),
-                "doc": join_date,
-                "source_row": row_number,
-            }
-            if code and code != TARGET_DEPT_CODE:  # departemen lain: tidak diimpor
-                rejected.append({
-                    "employee_number": clean(record["employee_number"]),
-                    "department": raw.get("department", ""),
-                    "reason": "Bukan section Haemo",
-                })
-                continue
-            record, reasons = validate_record(record, seen)
-            if reasons:
-                needs_review.append({"record": record, "reason": "; ".join(reasons)})
-            else:
-                accepted.append(record)
+            raw_rows.append({**raw, "source_row": row_number})
 
     if not found_table:
         raise ValueError(
             "Tabel recruitment tidak ditemukan. Pastikan header berisi Emp. No, Employee Name, dan Sect/Dept."
         )
-    if not join_date:
-        warnings.append("Tanggal DOC tidak ditemukan di dokumen; isi pada preview bila diperlukan.")
-    logger.info("Parsing selesai: total=%s haemo=%s lain=%s review=%s header=%s",
-                total_rows, len(accepted), len(rejected), len(needs_review), header_source)
-
-    return {
-        "summary": {
-            "total_detected": total_rows,
-            "haemo_candidates": len(accepted),
-            "other_departments": len(rejected),
-            "needs_review": len(needs_review),
-            "join_date": join_date,
-            "header_source": header_source,
-        },
-        "accepted": accepted,
-        "rejected": rejected,
-        "needs_review": needs_review,
-        "warnings": warnings,
-    }
+    return build_result(raw_rows, join_date, header_source, warnings)

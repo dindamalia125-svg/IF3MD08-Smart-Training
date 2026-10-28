@@ -12,6 +12,7 @@ from accounts.models import AuditLog
 from ai_parser import header_ai
 from ai_parser.forms import DocumentUploadForm
 from ai_parser.models import Manpower
+from ai_parser.pdf_parser import parse_pdf
 from ai_parser.word_parser import parse_docx, split_department, validate_record
 from training.factories import make_admin, make_master, make_trainer
 
@@ -38,6 +39,31 @@ def make_docx(rows=ROWS, headers=HEADERS, join_text="The above staff shall join 
         doc.add_paragraph(join_text)
     buf = io.BytesIO()
     doc.save(buf)
+    buf.seek(0)
+    return buf
+
+
+PDF_LINES = [
+    "Please find list of new recruitment for as follows:",
+    "No. Emp. No Employee Name Gender Sect/Dept Shift Position Employment Status Replacement",
+    "1 20366 Rizky Insani Male 1340 / Tech4 Normal Engineer Contract Additional",
+    "2 41411 Erwin Nandra Volta Male 1340 / Tech4 Normal Technician Contract 41251 / Moh Valikhajar",
+    "3 98420 Alya Dzihni Female 2700 / Haemo Normal Operator Contract Additional",
+    "4 98421 Andini Female 2700 / Haemo Normal Operator Contract Additional",
+    "The above staff shall join August 06th 2026",
+]
+
+
+def make_pdf(lines):
+    from reportlab.pdfgen import canvas
+
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf)
+    y = 800
+    for line in lines:
+        c.drawString(30, y, line)
+        y -= 16
+    c.save()
     buf.seek(0)
     return buf
 
@@ -128,6 +154,59 @@ class ParseDocxTests(SimpleTestCase):
             parse_docx(make_docx([["1", "a", "b", "c"]], headers), ai_mapper=lambda labels: {})
 
 
+class SectionSeparationTests(SimpleTestCase):
+    def test_docx_groups_employees_per_section(self):
+        r = parse_docx(make_docx(), ai_mapper=None)
+        by_label = {g["label"]: g for g in r["sections"]}
+        self.assertEqual(by_label["2700 / Haemo"]["count"], 2)
+        self.assertEqual(by_label["1340 / Tech4"]["count"], 1)
+        self.assertTrue(by_label["2700 / Haemo"]["is_target"])
+        self.assertFalse(by_label["1340 / Tech4"]["is_target"])
+        self.assertEqual(r["sections"][0]["label"], "2700 / Haemo")  # Haemo selalu di urutan pertama
+        self.assertEqual(r["rejected"][0]["employee_name"], "Rizky Insani")
+
+    def test_unrecognised_department_has_own_group(self):
+        rows = [["1", "98420", "Alya", "Female", "Haemo saja", "Normal", "Operator", "Contract", "-"]]
+        r = parse_docx(make_docx(rows), ai_mapper=None)
+        self.assertEqual([g["label"] for g in r["sections"]], ["Tidak dikenali"])
+        self.assertEqual(len(r["needs_review"]), 1)
+
+
+class ParsePdfTests(SimpleTestCase):
+    def test_separates_haemo_from_other_sections(self):
+        r = parse_pdf(make_pdf(PDF_LINES))
+        self.assertEqual([x["employee_number"] for x in r["accepted"]], ["98420", "98421"])
+        self.assertEqual([x["employee_number"] for x in r["rejected"]], ["20366", "41411"])
+        self.assertEqual(r["summary"]["join_date"], "2026-08-06")
+        first = r["accepted"][0]
+        self.assertEqual((first["shift"], first["position"], first["status"], first["remarks"]),
+                         ("Normal", "Operator", "Contract", "Additional"))
+        self.assertEqual(r["rejected"][1]["department"], "1340 / Tech4")
+
+    def test_row_wrapped_over_two_lines_is_joined(self):
+        lines = ["3 98420 Alya Dzihni Fadhilah", "Siregar Female 2700 / Haemo Normal Operator Contract Additional"]
+        r = parse_pdf(make_pdf(lines))
+        self.assertEqual(r["accepted"][0]["employee_name"], "Alya Dzihni Fadhilah Siregar")
+
+    def test_same_result_as_word(self):
+        pdf, word = parse_pdf(make_pdf(PDF_LINES)), parse_docx(make_docx(), ai_mapper=None)
+        pick = lambda rows: [(x["employee_number"], x["employee_name"], x["position"], x["status"]) for x in rows]  # noqa: E731
+        self.assertEqual(pick(pdf["accepted"])[0][:2], ("98420", "Alya Dzihni"))
+        self.assertEqual(pick(pdf["accepted"]), pick(word["accepted"]))
+
+    def test_scanned_pdf_without_text_gives_clear_error(self):
+        with self.assertRaisesMessage(ValueError, "hasil scan"):
+            parse_pdf(make_pdf([]))
+
+    def test_pdf_without_employee_rows(self):
+        with self.assertRaisesMessage(ValueError, "Baris karyawan tidak ditemukan"):
+            parse_pdf(make_pdf(["Surat biasa tanpa tabel karyawan"]))
+
+    def test_corrupt_pdf(self):
+        with self.assertRaisesMessage(ValueError, "rusak"):
+            parse_pdf(io.BytesIO(b"%PDF-1.4 ini bukan pdf yang benar"))
+
+
 class SplitDepartmentTests(SimpleTestCase):
     def test_format_variants(self):
         for value in ["2700 / Haemo", "2700/Haemo", "2700 - Haemo", "2700-Haemo", "2700 : Haemo",
@@ -206,7 +285,10 @@ class UploadFormTests(SimpleTestCase):
     def test_rules(self):
         ok, _ = self.check(upload(make_docx()))
         self.assertTrue(ok)
-        self.assertIn("ekstensi .docx", self.check(upload(make_docx(), "a.pdf"))[1])
+        self.assertIn("Word (.docx) atau PDF", self.check(upload(make_docx(), "a.txt"))[1])
+        self.assertIn("bukan PDF", self.check(upload(make_docx(), "a.pdf"))[1])  # isi tidak sesuai ekstensi
+        ok_pdf, _ = self.check(upload(make_pdf(PDF_LINES), "a.pdf"))
+        self.assertTrue(ok_pdf)
         self.assertIn("File kosong", self.check(SimpleUploadedFile("a.docx", b""))[1])
         self.assertIn("rusak", self.check(SimpleUploadedFile("a.docx", b"bukan zip"))[1])
         big = SimpleUploadedFile("a.docx", b"PK\x03\x04" + b"0" * (10 * 1024 * 1024))
@@ -307,6 +389,29 @@ class ViewTests(TestCase):
         trainee.refresh_from_db()
         self.assertEqual(trainee.shift_id, shift.pk)
 
+    def test_pdf_upload_full_flow_with_sections(self):
+        r = self.do_upload(make_pdf(PDF_LINES), "rekrut.pdf")
+        self.assertRedirects(r, reverse("ai_parser:preview_import"))
+        self.assertEqual(Manpower.objects.count(), 0)
+        preview = self.client.get(reverse("ai_parser:preview_import"))
+        self.assertContains(preview, "Pemisahan karyawan per section")
+        self.assertContains(preview, "1340 / Tech4")
+        self.assertContains(preview, "Rizky Insani")  # section lain terlihat, tetapi tidak diimpor
+        self.client.post(reverse("ai_parser:confirm_import"), self.confirm_data(preview))
+        self.assertEqual(sorted(Manpower.objects.values_list("employee_number", flat=True)), ["98420", "98421"])
+
+    def test_scanned_pdf_upload_shows_clear_error(self):
+        r = self.do_upload(make_pdf([]), "scan.pdf")
+        self.assertContains(r, "hasil scan")
+        self.assertEqual(Manpower.objects.count(), 0)
+
+    def test_dropzone_on_input_manpower_ai_page_and_upload_page(self):
+        for name in ("training:manpower", "ai_parser:upload_document"):
+            page = self.client.get(reverse(name))
+            self.assertContains(page, 'id="dz"')
+            self.assertContains(page, reverse("ai_parser:upload_document"))
+            self.assertContains(page, "dropzone.js")
+
     def test_user_can_fix_review_row_in_preview(self):
         rows = [["1", "98420", "", "F", "2700 / Haemo", "", "Op", "C", ""]]
         self.do_upload(make_docx(rows))
@@ -357,8 +462,8 @@ class ViewTests(TestCase):
         self.assertContains(r, "File rusak atau bukan dokumen Word")
         r = self.do_upload(make_docx([["1", "a", "b", "c"]], ["No", "Kolom A", "Kolom B", "Kolom C"]))
         self.assertContains(r, "Tabel recruitment tidak ditemukan")
-        r = self.do_upload(make_docx(), "rekrut.pdf")
-        self.assertContains(r, "ekstensi .docx")
+        r = self.do_upload(make_docx(), "rekrut.txt")
+        self.assertContains(r, "Word (.docx) atau PDF")
         self.assertEqual(Manpower.objects.count(), 0)
 
     def test_unexpected_error_hides_internal_details(self):
