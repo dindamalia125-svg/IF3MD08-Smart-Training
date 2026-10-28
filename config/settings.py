@@ -82,6 +82,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
 
+# Logging: pesan parser (parsing, panggilan AI, import) tampil di konsol dan disimpan di logs/sta.log.
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"std": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "std"},
+        "file": {"class": "logging.handlers.RotatingFileHandler", "formatter": "std",
+                 "filename": str(LOG_DIR / "sta.log"), "maxBytes": 1_000_000, "backupCount": 3,
+                 "encoding": "utf-8"},
+    },
+    "loggers": {"ai_parser": {"handlers": ["console", "file"], "level": "INFO", "propagate": False}},
+}
+
 # Ambang rekomendasi kualifikasi (UC-10): rata-rata output >= 90% target proses.
 QUALIFY_THRESHOLD = float(os.environ.get("QUALIFY_THRESHOLD", "0.9"))
 # Peringatan masa training (UC-12): tampil bila lama training >= 90% durasi maksimal.

@@ -1,14 +1,13 @@
-{% extends "ai_parser/base.html" %}
-{% block title %}Import Manpower | STA{% endblock %}
+{% extends "base.html" %}
+{% block title %}Import Manpower{% endblock %}
 {% block content %}
-<div class="top"><div><h1>Import Manpower Data</h1><div class="muted">Section 2700 / Haemo · Upload dokumen recruitment HR</div></div><a class="btn secondary" href="{% url 'ai_parser:manpower_list' %}">Kembali ke Manpower Data</a></div>
-<div class="panel">
-  <h3>Upload dokumen Word</h3>
-  <p class="muted">Parser akan membaca tabel, mengambil hanya Sect/Dept 2700 / Haemo, dan menampilkan preview sebelum penyimpanan.</p>
- <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Upload Dokumen</button>
+<h1 class="title"><i class="dot"></i> Import Manpower Data (Word)</h1>
+<p class="muted">Section 2700 / Haemo · unggah dokumen recruitment dari HR (.docx, maks. 10 MB).</p>
+<form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+  <p class="muted">Sistem membaca tabel, mengambil hanya Sect/Dept 2700 / Haemo, lalu menampilkan preview. Data baru disimpan setelah Anda mengonfirmasi.</p>
+  {% if form.document.errors %}<div class="alert error" role="alert">⚠ {{ form.document.errors|join:" " }}</div>{% endif %}
+  <p><label for="{{ form.document.id_for_label }}">{{ form.document.label }}</label><br>{{ form.document }}</p>
+  <div class="actions"><a class="btn" href="{% url 'ai_parser:manpower_list' %}">Batal</a>
+  <button class="btn primary" type="submit">Upload &amp; Parse</button></div>
 </form>
-</div>
 {% endblock %}
