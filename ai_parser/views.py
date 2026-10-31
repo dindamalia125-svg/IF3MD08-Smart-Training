@@ -72,8 +72,17 @@ def manpower_list(request):
         Manpower.objects.exclude(supervisor="").order_by("supervisor")
         .values_list("supervisor", flat=True).distinct()
     )
+    people = list(manpower)
+    # Kontrak berakhir disimpan pada Trainee (sumber data yang sama dengan notifikasi finish kontrak).
+    contracts = {
+        t.emp_no.upper(): t.kontrak_berakhir
+        for t in Trainee.objects.filter(emp_no__in=[p.employee_number for p in people])
+    }
+    for p in people:
+        p.has_trainee = p.employee_number.upper() in contracts
+        p.kontrak = contracts.get(p.employee_number.upper())
     return render(request, "ai_parser/manpower_list.html", {
-        "manpower": manpower,
+        "manpower": people,
         "query": query,
         "total": manpower.count(),
         "shift_options": shift_options(),
@@ -222,6 +231,8 @@ def update_assignment(request, pk):
 
     field = payload.get("field")
     value = str(payload.get("value", "")).strip()
+    if field == "kontrak_berakhir":
+        return _update_contract(request, manpower, value)
     if field not in {"supervisor", "shift"}:
         return JsonResponse({"ok": False, "error": "Field tidak boleh diubah."}, status=400)
     if len(value) > 120:
@@ -238,6 +249,41 @@ def update_assignment(request, pk):
         log(request.user, "Ubah data", "Data Manpower Haemo",
             f"Emp No {manpower.employee_number}: {field} '{old}' -> '{value}'")
     return JsonResponse({"ok": True, "field": field, "value": value})
+
+
+def _update_contract(request, manpower, value):
+    """Isi/hapus tanggal finish kontrak. Disimpan pada Trainee dengan Emp No yang sama."""
+    trainee = Trainee.objects.filter(emp_no__iexact=manpower.employee_number).first()
+    if not trainee:
+        return JsonResponse({"ok": False, "error": "Karyawan belum terdaftar sebagai Trainee."}, status=400)
+    new = None
+    if value:
+        try:
+            new = date.fromisoformat(value)
+        except ValueError:
+            return JsonResponse({"ok": False, "error": "Format tanggal tidak valid."}, status=400)
+        if not 2000 <= new.year <= 2100:
+            return JsonResponse({"ok": False, "error": "Tanggal kontrak di luar rentang wajar."}, status=400)
+    old = trainee.kontrak_berakhir
+    if old != new:
+        trainee.kontrak_berakhir = new
+        trainee.save(update_fields=["kontrak_berakhir"])
+        log(request.user, "Ubah data", "Data Manpower Haemo",
+            f"Emp No {manpower.employee_number}: kontrak berakhir '{old or '-'}' -> '{new or '-'}'")
+    return JsonResponse({"ok": True, "field": "kontrak_berakhir", "value": value})
+
+
+@staff_required
+@require_POST
+def delete_manpower(request, pk):
+    """Hapus satu baris Manpower. Data Trainee (capaian, sertifikat) sengaja tidak ikut dihapus."""
+    manpower = get_object_or_404(Manpower, pk=pk, section_code=TARGET_DEPT_CODE)
+    label = f"{manpower.employee_number} {manpower.employee_name}"
+    manpower.delete()
+    log(request.user, "Hapus data", "Data Manpower Haemo", f"Hapus Emp No {label}")
+    logger.info("Manpower dihapus oleh %s: %s", request.user.username, label)
+    messages.success(request, f"Data {label} dihapus dari Manpower Data. Riwayat training tetap tersimpan.")
+    return redirect("ai_parser:manpower_list")
 
 
 @staff_required

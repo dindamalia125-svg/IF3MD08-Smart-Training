@@ -8,6 +8,7 @@ urlpatterns = [
     path("upload/", views.upload_document, name="upload_document"),
     path("preview/", views.preview_import, name="preview_import"),
     path("confirm/", views.confirm_import, name="confirm_import"),
+    path("<int:pk>/delete/", views.delete_manpower, name="delete_manpower"),
     path("<int:pk>/assignment/", views.update_assignment, name="update_assignment"),
     path("<int:pk>/", views.manpower_profile, name="manpower_profile"),
 ]

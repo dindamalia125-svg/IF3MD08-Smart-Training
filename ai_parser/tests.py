@@ -412,6 +412,87 @@ class ViewTests(TestCase):
             self.assertContains(page, reverse("ai_parser:upload_document"))
             self.assertContains(page, "dropzone.js")
 
+    def _imported_person(self):
+        preview = self.client.get(self.do_upload()["Location"])
+        self.client.post(reverse("ai_parser:confirm_import"), self.confirm_data(preview))
+        return Manpower.objects.get(employee_number="98420")
+
+    def _post_assignment(self, pk, field, value):
+        return self.client.post(reverse("ai_parser:update_assignment", args=[pk]),
+                                json.dumps({"field": field, "value": value}), content_type="application/json")
+
+    def test_set_and_clear_contract_end_date_updates_trainee_with_audit(self):
+        from training.models import Trainee
+
+        m = self._imported_person()
+        r = self._post_assignment(m.pk, "kontrak_berakhir", "2027-03-31")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(str(Trainee.objects.get(emp_no="98420").kontrak_berakhir), "2027-03-31")
+        self.assertTrue(AuditLog.objects.filter(aktivitas="Ubah data", keterangan__contains="kontrak").exists())
+        self.assertEqual(self._post_assignment(m.pk, "kontrak_berakhir", "").status_code, 200)
+        self.assertIsNone(Trainee.objects.get(emp_no="98420").kontrak_berakhir)
+
+    def test_contract_end_date_rejects_bad_input(self):
+        m = self._imported_person()
+        for bad in ("31/03/2027", "2027-13-40", "abc", "1999-01-01", "2200-01-01"):
+            self.assertEqual(self._post_assignment(m.pk, "kontrak_berakhir", bad).status_code, 400, bad)
+
+    def test_contract_end_date_needs_trainee(self):
+        m = Manpower.objects.create(employee_number="55555", employee_name="Tanpa Trainee")
+        r = self._post_assignment(m.pk, "kontrak_berakhir", "2027-01-01")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Trainee", r.json()["error"])
+
+    def test_list_shows_contract_input_and_value(self):
+        m = self._imported_person()
+        self._post_assignment(m.pk, "kontrak_berakhir", "2027-03-31")
+        page = self.client.get(reverse("ai_parser:manpower_list"))
+        self.assertContains(page, 'data-field="kontrak_berakhir"')
+        self.assertContains(page, 'value="2027-03-31"')
+        self.assertContains(page, "Finish Kontrak 12 Bulan")
+
+    def test_delete_requires_post_and_login(self):
+        m = self._imported_person()
+        url = reverse("ai_parser:delete_manpower", args=[m.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.assertTrue(Manpower.objects.filter(pk=m.pk).exists())
+        self.client.logout()
+        self.assertEqual(self.client.post(url).status_code, 302)
+        self.assertTrue(Manpower.objects.filter(pk=m.pk).exists())
+
+    def test_delete_removes_manpower_keeps_trainee_and_logs(self):
+        from training.models import Trainee
+
+        m = self._imported_person()
+        r = self.client.post(reverse("ai_parser:delete_manpower", args=[m.pk]), follow=True)
+        self.assertRedirects(r, reverse("ai_parser:manpower_list"))
+        self.assertFalse(Manpower.objects.filter(employee_number="98420").exists())
+        self.assertTrue(Trainee.objects.filter(emp_no="98420").exists())  # riwayat training tetap
+        self.assertContains(r, "dihapus dari Manpower Data")
+        self.assertTrue(AuditLog.objects.filter(aktivitas="Hapus data", keterangan__contains="98420").exists())
+
+    def test_delete_works_for_super_admin_and_404_for_unknown(self):
+        m = self._imported_person()
+        self.login_admin()
+        self.assertEqual(self.client.post(reverse("ai_parser:delete_manpower", args=[m.pk])).status_code, 302)
+        self.assertFalse(Manpower.objects.filter(pk=m.pk).exists())
+        self.assertEqual(self.client.post(reverse("ai_parser:delete_manpower", args=[9999])).status_code, 404)
+
+    def test_delete_only_haemo_section(self):
+        other = Manpower.objects.create(employee_number="1", employee_name="X", section_code="1340")
+        self.assertEqual(self.client.post(reverse("ai_parser:delete_manpower", args=[other.pk])).status_code, 404)
+        self.assertTrue(Manpower.objects.filter(pk=other.pk).exists())
+
+    def test_deleted_person_can_be_imported_again(self):
+        m = self._imported_person()
+        self.client.post(reverse("ai_parser:delete_manpower", args=[m.pk]))
+        preview = self.client.get(self.do_upload()["Location"])
+        data = self.confirm_data(preview)
+        for i in range(int(data["count"])):
+            data[f"pilih-{i}"] = "1"  # Emp No masih jadi Trainee -> ditandai duplikat, pengguna boleh memilih manual
+        self.client.post(reverse("ai_parser:confirm_import"), data)
+        self.assertTrue(Manpower.objects.filter(employee_number="98420").exists())
+
     def test_user_can_fix_review_row_in_preview(self):
         rows = [["1", "98420", "", "F", "2700 / Haemo", "", "Op", "C", ""]]
         self.do_upload(make_docx(rows))

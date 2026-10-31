@@ -13,6 +13,7 @@ Kembali ke [[00 AI Context]]. Alur per fitur ada di [[02 Use Case]].
 |Qualified bila rata-rata output ≥ X × target|0.9|`QUALIFY_THRESHOLD`|`training/evaluasi.py`|
 |Peringatan bila lama training ≥ X × durasi maks|0.9|`TRAINING_WARNING_RATIO`|`dashboard/views.py::trainer`|
 |Notifikasi kontrak bila berakhir ≤ N hari|30|`CONTRACT_WARNING_DAYS`|`dashboard/views.py::trainer`|
+|Halaman Finish Kontrak: rentang bawaan (bulan; pilihan 3/6/12)|12|`CONTRACT_VIEW_MONTHS`|`dashboard/views.py::finish_kontrak`|
 
 ## Kualifikasi
 
@@ -41,6 +42,9 @@ Kembali ke [[00 AI Context]]. Alur per fitur ada di [[02 Use Case]].
 ## Kontrak (UC-13)
 
 - Trainee `aktif=True`, `kontrak_berakhir` di antara hari ini dan hari ini + N hari. Kontrak yang sudah lewat **tidak** muncul.
+- Halaman Finish Kontrak (`/dashboard/kontrak/`, Super Admin dan Trainer): Trainee aktif dengan `kontrak_berakhir` dari hari ini s.d. hari ini + 3/6/12 bulan, dikelompokkan per bulan. Kontrak yang sudah lewat tetapi trainee masih aktif ditampilkan di bagian terpisah "perlu tindak lanjut".
+- Tanggal kontrak diisi di Manpower Data (kolom Kontrak Berakhir) dan disimpan pada `Trainee` ber-Emp No sama; Manpower tanpa Trainee tidak bisa diisi.
+- Hapus di Manpower Data hanya menghapus baris `Manpower`; `Trainee` beserta capaian dan sertifikat tidak ikut dihapus. Tercatat di audit log ("Hapus data").
 - Lokasi = `Lini.lokasi_lengkap` + nama proses pertama trainee.
 
 ## Sertifikat
