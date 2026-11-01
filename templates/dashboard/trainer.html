@@ -4,18 +4,18 @@
 <div class="toolbar"><span class="sp"></span><span title="Notifikasi">🔔 {{ bell }}</span></div>
 <div class="kpis">
   <div class="kpi"><b>{{ kpi.training }}</b><span>Trainee Sedang Training</span></div>
-  <div class="kpi"><b>{{ kpi.dekat_batas }}</b><span>Mendekati Batas Masa Training</span></div>
-  <div class="kpi"><b>{{ kpi.kontrak }}</b><span>Kontrak Akan Habis</span></div>
+  <div class="kpi warn"><b>{{ kpi.dekat_batas }}</b><span>Mendekati Batas Masa Training</span></div>
+  <div class="kpi warn"><b>{{ kpi.kontrak }}</b><span>Kontrak Akan Habis</span></div>
   <div class="kpi"><b>{{ kpi.sertifikat }}</b><span>Sertifikat Tercetak</span></div>
 </div>
 
-<h1 class="title" style="margin-top:22px"><i class="dot"></i> Peringatan Masa Training</h1>
+<h1 class="title" style="margin-top:28px"><i class="dot"></i> Peringatan Masa Training</h1>
 {% if warnings %}
 <div class="alert warning">⚠ Perhatian: {{ warnings|length }} operator mendekati durasi maksimal training</div>
 <table class="t">
-  <thead><tr><th>Emp No.</th><th>Nama</th><th>Proses</th><th>Lama / Maks.</th><th>Indikator</th><th>Aksi</th></tr></thead>
+  <thead><tr><th>No. Badge</th><th>Nama</th><th>Proses</th><th>Lama / Maks.</th><th>Indikator</th><th>Aksi</th></tr></thead>
   <tbody>{% for w in warnings %}
-    <tr class="hl"><td>{{ w.pt.trainee.emp_no }}</td><td>{{ w.pt.trainee.nama }}</td><td>{{ w.pt.proses.nama }}</td>
+    <tr class="hl"><td>{{ w.pt.trainee.badge }}</td><td>{{ w.pt.trainee.nama }}</td><td>{{ w.pt.proses.nama }}</td>
       <td>{{ w.pt.lama_hari }} / {{ w.maks }} hari</td>
       <td><span class="ind" style="width:{% if w.persen > 100 %}100{% else %}{{ w.persen }}{% endif %}px"></span>{{ w.persen }}% · {% if w.lewat %}melewati batas{% else %}hampir batas{% endif %}</td>
       <td><a href="{% url 'training:trainee_profil' w.pt.trainee.pk %}">Lihat profil</a></td></tr>
@@ -23,17 +23,16 @@
 </table>
 {% else %}<div class="empty">Tidak ada peringatan — belum ada operator yang mendekati durasi maksimal training.</div>{% endif %}
 
-<h1 class="title" style="margin-top:26px"><i class="dot"></i> Notifikasi Finish Kontrak</h1>
+<h1 class="title" style="margin-top:32px"><i class="dot"></i> Notifikasi Finish Kontrak</h1>
 {% if contracts %}
 <div class="alert warning">⚠ Perhatian: {{ contracts|length }} karyawan akan habis masa kontrak dalam {{ hari_kontrak }} hari</div>
 <table class="t">
-  <thead><tr><th>Emp No.</th><th>Nama</th><th>Kontrak Berakhir</th><th>Lokasi Proses Kerja</th><th>Shift</th><th>Aksi</th></tr></thead>
+  <thead><tr><th>No. Badge</th><th>Nama</th><th>Kontrak Berakhir</th><th>Lokasi Proses Kerja</th><th>Shift</th><th>Aksi</th></tr></thead>
   <tbody>{% for c in contracts %}
-    <tr class="hl"><td>{{ c.t.emp_no }}</td><td>{{ c.t.nama }}</td><td>{{ c.t.kontrak_berakhir|date:"d M Y" }} <span class="muted">({{ c.sisa }} hari lagi)</span></td>
+    <tr class="hl"><td>{{ c.t.badge }}</td><td>{{ c.t.nama }}</td><td>{{ c.t.kontrak_berakhir|date:"d M Y" }} <span class="muted">({{ c.sisa }} hari lagi)</span></td>
       <td>{{ c.lokasi }}</td><td>{{ c.t.shift.kode|default:"-" }}</td>
       <td><a href="{% url 'training:trainee_profil' c.t.pk %}">Lihat profil</a></td></tr>
   {% endfor %}</tbody>
 </table>
 {% else %}<div class="empty">Tidak ada notifikasi — tidak ada kontrak karyawan yang akan habis dalam {{ hari_kontrak }} hari.</div>{% endif %}
-<p><a class="btn" href="{% url 'dashboard:finish_kontrak' %}">Lihat finish kontrak {{ bulan_kontrak }} bulan ke depan →</a></p>
 {% endblock %}
