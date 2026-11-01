@@ -35,5 +35,4 @@
   {% endfor %}</tbody>
 </table>
 {% else %}<div class="empty">Tidak ada notifikasi — tidak ada kontrak karyawan yang akan habis dalam {{ hari_kontrak }} hari.</div>{% endif %}
-<p><a class="btn" href="{% url 'dashboard:finish_kontrak' %}">Lihat finish kontrak {{ bulan_kontrak }} bulan ke depan →</a></p>
 {% endblock %}

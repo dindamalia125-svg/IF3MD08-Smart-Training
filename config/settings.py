@@ -104,5 +104,3 @@ QUALIFY_THRESHOLD = float(os.environ.get("QUALIFY_THRESHOLD", "0.9"))
 TRAINING_WARNING_RATIO = float(os.environ.get("TRAINING_WARNING_RATIO", "0.9"))
 # Notifikasi finish kontrak (UC-13): kontrak berakhir dalam N hari.
 CONTRACT_WARNING_DAYS = int(os.environ.get("CONTRACT_WARNING_DAYS", "30"))
-# Halaman Finish Kontrak: rentang waktu bawaan (bulan ke depan).
-CONTRACT_VIEW_MONTHS = int(os.environ.get("CONTRACT_VIEW_MONTHS", "12"))

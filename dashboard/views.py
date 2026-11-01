@@ -6,7 +6,7 @@ from django.db.models import Count, Sum
 from django.shortcuts import render
 from django.utils import timezone
 
-from accounts.decorators import role_required, super_admin_required, trainer_required
+from accounts.decorators import super_admin_required, trainer_required
 from training.models import Capaian, ProsesTrainee, Sertifikat, Trainee
 
 BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober",
@@ -63,53 +63,6 @@ def super_admin(request):
     return render(request, "dashboard/super_admin.html", ctx)
 
 
-def add_months(d, n):
-    """Tambah n bulan; hari dipotong ke akhir bulan bila perlu (31 Jan + 1 bulan = 28/29 Feb)."""
-    index = d.month - 1 + n
-    year, month = d.year + index // 12, index % 12 + 1
-    return date(year, month, min(d.day, calendar.monthrange(year, month)[1]))
-
-
-MONTH_CHOICES = (3, 6, 12)
-
-
-@role_required("SUPER_ADMIN", "TRAINER")
-def finish_kontrak(request):
-    """Daftar finish kontrak dalam N bulan ke depan (bawaan 12), dikelompokkan per bulan.
-
-    Hanya Trainee aktif. Kontrak yang sudah lewat tetapi trainee masih aktif ditampilkan
-    terpisah sebagai "perlu tindak lanjut" karena status karyawannya belum diperbarui.
-    """
-    try:
-        months = int(request.GET.get("bulan", settings.CONTRACT_VIEW_MONTHS))
-    except ValueError:
-        months = settings.CONTRACT_VIEW_MONTHS
-    if months not in MONTH_CHOICES:
-        months = settings.CONTRACT_VIEW_MONTHS if settings.CONTRACT_VIEW_MONTHS in MONTH_CHOICES else 12
-    today = timezone.localdate()
-    batas = add_months(today, months)
-    base = Trainee.objects.filter(aktif=True, kontrak_berakhir__isnull=False).select_related("lini", "shift")
-
-    def row(t):
-        pt = t.proses_list.select_related("proses").first()
-        parts = [t.lini.lokasi_lengkap if t.lini else "-"]
-        if pt:
-            parts.append(pt.proses.nama)
-        return {"t": t, "lokasi": " · ".join(parts), "sisa": (t.kontrak_berakhir - today).days,
-                "segera": (t.kontrak_berakhir - today).days <= settings.CONTRACT_WARNING_DAYS}
-
-    groups = {}
-    for t in base.filter(kontrak_berakhir__range=(today, batas)).order_by("kontrak_berakhir", "nama"):
-        key = (t.kontrak_berakhir.year, t.kontrak_berakhir.month)
-        groups.setdefault(key, {"label": f"{BULAN[key[1] - 1]} {key[0]}", "rows": []})["rows"].append(row(t))
-    expired = [row(t) for t in base.filter(kontrak_berakhir__lt=today).order_by("kontrak_berakhir")]
-    return render(request, "dashboard/kontrak.html", {
-        "groups": list(groups.values()), "expired": expired, "months": months, "month_choices": MONTH_CHOICES,
-        "total": sum(len(g["rows"]) for g in groups.values()), "today": today, "batas": batas,
-        "tanpa_kontrak": Trainee.objects.filter(aktif=True, kontrak_berakhir__isnull=True).count(),
-    })
-
-
 @trainer_required
 def trainer(request):
     """UC-12 (masa training) dan UC-13 (finish kontrak)."""
@@ -142,6 +95,5 @@ def trainer(request):
             "dekat_batas": len(warnings), "kontrak": len(contracts), "sertifikat": Sertifikat.objects.count(),
         },
         "hari_kontrak": settings.CONTRACT_WARNING_DAYS,
-        "bulan_kontrak": settings.CONTRACT_VIEW_MONTHS,
     }
     return render(request, "dashboard/trainer.html", ctx)

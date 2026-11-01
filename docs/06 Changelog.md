@@ -14,7 +14,3 @@
 - Halaman Input Manpower (AI) dan Import Manpower: area drag & drop file Word (.docx) atau PDF digital (maks. 10 MB). File langsung diparsing, lalu preview menampilkan karyawan per section (2700 / Haemo diproses, section lain hanya ditampilkan dan tidak diimpor).
 - `ai_parser/pdf_parser.py` (pypdf) baru; `word_parser.build_result` dipakai bersama oleh jalur Word dan PDF (validasi, filter section, duplikasi sama). PDF scan, terenkripsi, atau rusak ditolak dengan pesan jelas. Tidak ada migrasi baru.
 
-## 2026-10-31
-- Halaman baru Finish Kontrak (`/dashboard/kontrak/`): kontrak Trainee aktif yang berakhir dalam 3/6/12 bulan (bawaan 12, env `CONTRACT_VIEW_MONTHS`), dikelompokkan per bulan, plus daftar kontrak yang sudah lewat. Menu baru "Finish Kontrak" untuk Super Admin dan Trainer; tautan juga ada di dashboard Trainer dan Manpower Data.
-- Manpower Data: kolom "Kontrak Berakhir" (input tanggal, tersimpan otomatis ke Trainee) dan tombol Hapus dengan konfirmasi. Hapus hanya menghapus baris Manpower, riwayat Trainee tetap. Aktivitas audit log baru "Hapus data". Tidak ada migrasi.
-

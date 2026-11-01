@@ -2,13 +2,13 @@
 {% block title %}Manpower Data{% endblock %}
 {% block content %}
 <h1 class="title"><i class="dot"></i> Manpower Data</h1>
-<p class="muted">Section 2700 / Haemo · Total {{ total }} karyawan · Supervisor, Shift, dan Kontrak Berakhir dapat diubah langsung (tersimpan otomatis).</p>
+<p class="muted">Section 2700 / Haemo · Total {{ total }} karyawan · Supervisor dan Shift dapat diubah langsung (tersimpan otomatis).</p>
 <div class="actions" style="justify-content:space-between">
   <form method="get"><input type="search" name="q" value="{{ query }}" placeholder="Cari Emp No. atau nama..."> <button class="btn sm" type="submit">Cari</button></form>
-  <span><a class="btn" href="{% url 'dashboard:finish_kontrak' %}">Finish Kontrak 12 Bulan</a> <a class="btn primary" href="{% url 'ai_parser:upload_document' %}">Import Word / PDF</a></span>
+  <a class="btn primary" href="{% url 'ai_parser:upload_document' %}">Import Word</a>
 </div>
 <div style="overflow-x:auto"><table class="t">
-  <thead><tr><th>Emp No</th><th>Emp Name</th><th>DOC</th><th>Position</th><th>Section</th><th>Supervisor</th><th>Shift</th><th>Status</th><th>Remarks</th><th>Kontrak Berakhir</th><th>Aksi</th></tr></thead>
+  <thead><tr><th>Emp No</th><th>Emp Name</th><th>DOC</th><th>Position</th><th>Section</th><th>Supervisor</th><th>Shift</th><th>Status</th><th>Remarks</th></tr></thead>
   <tbody>
   {% for person in manpower %}
   <tr>
@@ -24,11 +24,8 @@
     </select> <span class="muted status"></span></td>
     <td>{{ person.status|default:"—" }}</td>
     <td>{{ person.remarks|default:"—" }}</td>
-    <td>{% if person.has_trainee %}<input type="date" class="autosave" data-id="{{ person.pk }}" data-field="kontrak_berakhir" value="{{ person.kontrak|date:'Y-m-d' }}" aria-label="Kontrak berakhir {{ person.employee_name }}"> <span class="muted status"></span>
-      {% else %}<span class="muted">Belum jadi Trainee</span>{% endif %}</td>
-    <td><form method="post" action="{% url 'ai_parser:delete_manpower' person.pk %}" class="del-form" data-name="{{ person.employee_number }} {{ person.employee_name }}">{% csrf_token %}<button class="btn sm danger" type="submit">Hapus</button></form></td>
   </tr>
-  {% empty %}<tr><td colspan="11">Belum ada data Manpower. Gunakan Import Word untuk memulai.</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="9">Belum ada data Manpower. Gunakan Import Word untuk memulai.</td></tr>{% endfor %}
   </tbody>
 </table></div>
 <datalist id="supervisor-list">{% for name in supervisor_options %}<option value="{{ name }}">{% endfor %}</datalist>
@@ -36,9 +33,6 @@
 {% block scripts %}
 <script>
 function getCookie(name){for(const c of document.cookie.split(";")){const t=c.trim();if(t.startsWith(name+"="))return decodeURIComponent(t.slice(name.length+1));}return "";}
-document.querySelectorAll(".del-form").forEach(f=>f.addEventListener("submit",e=>{
-  if(!confirm("Hapus "+f.dataset.name+" dari Manpower Data?\nRiwayat training (capaian, sertifikat) tidak ikut dihapus.")) e.preventDefault();
-}));
 document.querySelectorAll(".autosave").forEach(el=>{
   let last=el.value;
   el.addEventListener("change",async()=>{

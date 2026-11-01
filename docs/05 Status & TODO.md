@@ -4,7 +4,6 @@
 - (kosong)
 
 ## Selesai
-- Finish Kontrak 12 bulan (`/dashboard/kontrak/`), kolom Kontrak Berakhir yang dapat diedit, dan fitur Hapus di Manpower Data
 - Input Manpower (AI): area drag & drop file Word/PDF (`partials/dropzone.html`, `static/js/dropzone.js`); dokumen diparsing, dipisah per Sect/Dept, dan hanya 2700 / Haemo yang diimpor setelah konfirmasi preview
 - AI Parser upload Word (`/manpower/upload/`): AI hanya membantu mengenali header, validasi tetap aturan deterministik, simpan hanya setelah konfirmasi preview (tes `ai_parser`)
 - UC-01 s.d. UC-13 sudah diimplementasikan (51 tes)

@@ -7,5 +7,4 @@ app_name = "dashboard"
 urlpatterns = [
     path("admin/", views.super_admin, name="super_admin"),
     path("trainer/", views.trainer, name="trainer"),
-    path("kontrak/", views.finish_kontrak, name="finish_kontrak"),
 ]

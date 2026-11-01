@@ -47,7 +47,6 @@ class AuditLog(models.Model):
     AKTIVITAS = [
         "Tambah data",
         "Ubah data",
-        "Hapus data",
         "Input data",
         "Parsing manpower",
         "Cetak sertifikat",
