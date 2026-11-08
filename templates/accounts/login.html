@@ -10,12 +10,22 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons untuk Ikon Mata -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bs-primary: #1D5FC4;
+            --bs-primary-rgb: 29, 95, 196;
+            --bs-body-font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+        }
+
         body,
         html {
             height: 100%;
             margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+            font-size: 14px;
+            background-color: #F4F6FA;
             background-image: url("{% static 'images/login-bg.png' %}");
             background-size: cover;
             background-position: left center;
@@ -28,17 +38,111 @@
         }
 
         .login-card {
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            box-shadow: 0 16px 40px rgba(11, 42, 82, 0.28);
             max-width: 420px;
             width: 100%;
             margin-right: 40px;
         }
 
+        .login-card h3 {
+            font-family: Poppins, Inter, sans-serif;
+            font-weight: 600;
+            font-size: 24px;
+            color: #1A2433;
+        }
+
+        .login-card .text-muted,
+        .login-card .text-secondary {
+            color: #55627A !important;
+        }
+
+        .login-card .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1A2433 !important;
+            margin-bottom: 8px;
+        }
+
+        .login-card .form-control {
+            min-height: 44px;
+            border: 1.5px solid #8A94A6;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .login-card .input-group .form-control {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .login-card .form-control:focus {
+            border-color: #1D5FC4;
+            box-shadow: 0 0 0 3px rgba(29, 95, 196, .25);
+        }
+
         .toggle-password {
             cursor: pointer;
             background: transparent;
+            border: 1.5px solid #8A94A6;
             border-left: none;
+            border-radius: 0 8px 8px 0;
+            color: #55627A;
+            min-width: 48px;
+        }
+
+        .toggle-password:hover {
+            background: #F4F6FA;
+            color: #1A2433;
+        }
+
+        .login-card .btn-primary {
+            background: #1D5FC4;
+            border-color: #1D5FC4;
+            min-height: 44px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 200ms ease, box-shadow 200ms ease;
+        }
+
+        .login-card .btn-primary:hover {
+            background: #164CA0;
+            border-color: #164CA0;
+            box-shadow: 0 4px 10px rgba(11, 42, 82, .28);
+        }
+
+        .login-card .btn:focus-visible,
+        .login-card a:focus-visible {
+            outline: 3px solid #FFB020;
+            outline-offset: 2px;
+        }
+
+        .login-card .form-check-input:checked {
+            background-color: #1D5FC4;
+            border-color: #1D5FC4;
+        }
+
+        .login-card a {
+            color: #1D5FC4;
+            font-weight: 500;
+        }
+
+        .login-card .alert-danger {
+            background: #FDECEA;
+            border-color: #E7A9A5;
+            color: #B3261E;
+            font-weight: 500;
+            font-size: 14px !important;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 767px) {
+            .login-card {
+                margin: 16px;
+            }
+
+            .login-container {
+                align-items: flex-end !important;
+            }
         }
     </style>
 </head>

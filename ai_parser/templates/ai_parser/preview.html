@@ -2,7 +2,7 @@
 {% block title %}Preview Import Manpower{% endblock %}
 {% block content %}
 <h1 class="title"><i class="dot"></i> Preview Hasil Parsing</h1>
-<p class="muted">Periksa dan perbaiki data. Belum ada yang disimpan. Baris bertanda ⚠ perlu diperbaiki lebih dulu; baris yang tidak dicentang tidak diimpor.</p>
+<p class="muted">Periksa dan perbaiki data. Belum ada yang disimpan. Baris bertanda {% include "partials/icon.html" with name="triangle-alert" %} perlu diperbaiki lebih dulu; baris yang tidak dicentang tidak diimpor.</p>
 <p>
   Total baris: <b>{{ result.summary.total_detected }}</b> ·
   Calon Haemo: <b>{{ result.summary.haemo_candidates }}</b> ·
@@ -11,7 +11,7 @@
   Header dikenali oleh: <b>{{ result.summary.header_source }}</b>
 </p>
 {% if result.summary.join_date %}<p class="muted">DOC terdeteksi: {{ result.summary.join_date }}</p>{% endif %}
-{% for w in result.warnings %}<div class="alert warning" role="status">⚠ {{ w }}</div>{% endfor %}
+{% for w in result.warnings %}<div class="alert warning" role="status">{% include "partials/icon.html" with name="triangle-alert" %} {{ w }}</div>{% endfor %}
 
 <h2 class="sec">Pemisahan karyawan per section</h2>
 <div class="sec-grid">
@@ -43,7 +43,7 @@
         <td><input type="text" name="shift-{{ i }}" value="{{ r.shift }}" list="shift-list" size="8"></td>
         <td><input type="text" name="status-{{ i }}" value="{{ r.status }}" size="9"></td>
         <td><input type="text" name="remarks-{{ i }}" value="{{ r.remarks }}" size="12"></td>
-        <td>{% if item.reason %}<span class="badge warn">⚠ {{ item.reason }}</span>
+        <td>{% if item.reason %}<span class="badge warn">{{ item.reason }}</span>
             {% elif item.already_exists %}<span class="badge bad">Emp No sudah ada di database (duplikat)</span>
             {% else %}<span class="badge ok">OK</span>{% endif %}</td>
       </tr>{% endwith %}

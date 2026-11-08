@@ -10,7 +10,7 @@
       <tbody>{% for p in page %}
         <tr><td>{{ p.kode }}</td><td>{{ p.nama }}</td><td>{{ p.target_harian }} pcs</td><td>{{ p.durasi_maks_hari }} hari</td>
           <td><a href="{% url 'master:proses_edit' p.pk %}">Ubah</a> ·
-            <form class="inline" method="post" action="{% url 'master:proses_delete' p.pk %}" onsubmit="return confirm('Hapus proses {{ p.kode }}?')">{% csrf_token %}<button class="btn link" type="submit">Hapus</button></form></td></tr>
+            <form class="inline" method="post" action="{% url 'master:proses_delete' p.pk %}" data-confirm="Hapus proses {{ p.kode }}?" data-confirm-text="Data proses ini akan dihapus." data-confirm-ok="Hapus" data-confirm-tone="danger">{% csrf_token %}<button class="btn link" type="submit">Hapus</button></form></td></tr>
       {% empty %}<tr><td colspan="5" class="muted">Belum ada proses.</td></tr>{% endfor %}</tbody>
     </table>
     {% include "partials/pagination.html" with unit="proses" %}
@@ -21,15 +21,15 @@
     <b>{% if editing %}Ubah{% else %}Tambah{% endif %} Proses</b>
     <form method="post" novalidate>{% csrf_token %}
       <label for="{{ form.kode.id_for_label }}">Kode Proses</label>{{ form.kode }}
-      {% for e in form.kode.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      {% for e in form.kode.errors %}<div class="field-error">{% include "partials/icon.html" with name="triangle-alert" %} {{ e }}</div>{% endfor %}
       <label for="{{ form.nama.id_for_label }}">Nama Proses</label>{{ form.nama }}
-      {% for e in form.nama.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      {% for e in form.nama.errors %}<div class="field-error">{% include "partials/icon.html" with name="triangle-alert" %} {{ e }}</div>{% endfor %}
       <div class="grid2">
         <div><label for="{{ form.target_harian.id_for_label }}">Target Harian</label>{{ form.target_harian }}</div>
         <div><label for="{{ form.durasi_maks_hari.id_for_label }}">Durasi Maks. Training (hari)</label>{{ form.durasi_maks_hari }}</div>
       </div>
-      {% for e in form.target_harian.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
-      {% for e in form.durasi_maks_hari.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      {% for e in form.target_harian.errors %}<div class="field-error">{% include "partials/icon.html" with name="triangle-alert" %} {{ e }}</div>{% endfor %}
+      {% for e in form.durasi_maks_hari.errors %}<div class="field-error">{% include "partials/icon.html" with name="triangle-alert" %} {{ e }}</div>{% endfor %}
       <div class="actions"><a class="btn" href="{% url 'master:proses_list' %}">Batal</a><button class="btn primary" type="submit">Simpan</button></div>
     </form>
   </div>

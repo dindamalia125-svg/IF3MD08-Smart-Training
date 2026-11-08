@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Dashboard Trainer{% endblock %}
 {% block content %}
-<div class="toolbar"><span class="sp"></span><span title="Notifikasi">🔔 {{ bell }}</span></div>
+<div class="toolbar"><span class="sp"></span><span title="Notifikasi" aria-label="Notifikasi: {{ bell }}" role="img" class="bell">{% include "partials/icon.html" with name="bell" %} {{ bell }}</span></div>
 <div class="kpis">
   <div class="kpi"><b>{{ kpi.training }}</b><span>Trainee Sedang Training</span></div>
   <div class="kpi"><b>{{ kpi.dekat_batas }}</b><span>Mendekati Batas Masa Training</span></div>
@@ -11,7 +11,7 @@
 
 <h1 class="title" style="margin-top:22px"><i class="dot"></i> Peringatan Masa Training</h1>
 {% if warnings %}
-<div class="alert warning">⚠ Perhatian: {{ warnings|length }} operator mendekati durasi maksimal training</div>
+<div class="alert warning">{% include "partials/icon.html" with name="triangle-alert" %} Perhatian: {{ warnings|length }} operator mendekati durasi maksimal training</div>
 <table class="t">
   <thead><tr><th>Emp No.</th><th>Nama</th><th>Proses</th><th>Lama / Maks.</th><th>Indikator</th><th>Aksi</th></tr></thead>
   <tbody>{% for w in warnings %}
@@ -25,7 +25,7 @@
 
 <h1 class="title" style="margin-top:26px"><i class="dot"></i> Notifikasi Finish Kontrak</h1>
 {% if contracts %}
-<div class="alert warning">⚠ Perhatian: {{ contracts|length }} karyawan akan habis masa kontrak dalam {{ hari_kontrak }} hari</div>
+<div class="alert warning">{% include "partials/icon.html" with name="triangle-alert" %} Perhatian: {{ contracts|length }} karyawan akan habis masa kontrak dalam {{ hari_kontrak }} hari</div>
 <table class="t">
   <thead><tr><th>Emp No.</th><th>Nama</th><th>Kontrak Berakhir</th><th>Lokasi Proses Kerja</th><th>Shift</th><th>Aksi</th></tr></thead>
   <tbody>{% for c in contracts %}

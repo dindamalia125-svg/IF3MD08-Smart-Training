@@ -9,7 +9,7 @@
       <tbody>{% for s in shifts %}
         <tr><td>{{ s.kode }}</td><td>{{ s.nama }}</td>
           <td><a href="?ubah_shift={{ s.pk }}">Ubah</a> ·
-            <form class="inline" method="post" action="{% url 'master:shift_delete' s.pk %}" onsubmit="return confirm('Hapus shift {{ s.kode }}?')">{% csrf_token %}<button class="btn link" type="submit">Hapus</button></form></td></tr>
+            <form class="inline" method="post" action="{% url 'master:shift_delete' s.pk %}" data-confirm="Hapus shift {{ s.kode }}?" data-confirm-text="Data shift ini akan dihapus." data-confirm-ok="Hapus" data-confirm-tone="danger">{% csrf_token %}<button class="btn link" type="submit">Hapus</button></form></td></tr>
       {% empty %}<tr><td colspan="3" class="muted">Belum ada shift.</td></tr>{% endfor %}</tbody>
     </table>
     <form method="post" class="card" style="margin-top:14px" novalidate>{% csrf_token %}
@@ -19,8 +19,8 @@
         <div><label for="{{ shift_form.kode.id_for_label }}">Kode Shift</label>{{ shift_form.kode }}</div>
         <div><label for="{{ shift_form.nama.id_for_label }}">Nama Shift</label>{{ shift_form.nama }}</div>
       </div>
-      {% for e in shift_form.kode.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
-      {% for e in shift_form.nama.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      {% for e in shift_form.kode.errors %}<div class="field-error">{% include "partials/icon.html" with name="triangle-alert" %} {{ e }}</div>{% endfor %}
+      {% for e in shift_form.nama.errors %}<div class="field-error">{% include "partials/icon.html" with name="triangle-alert" %} {{ e }}</div>{% endfor %}
       <div class="actions" style="justify-content:flex-end">{% if shift_inst %}<a class="btn" href="{% url 'master:shift_lini' %}">Batal</a>{% endif %}<button class="btn primary" type="submit">Simpan</button></div>
     </form>
   </section>
@@ -31,7 +31,7 @@
       <tbody>{% for l in linis %}
         <tr><td>{{ l.nama }}</td><td>{{ l.lokasi }}</td>
           <td><a href="?ubah_lini={{ l.pk }}">Ubah</a> ·
-            <form class="inline" method="post" action="{% url 'master:lini_delete' l.pk %}" onsubmit="return confirm('Hapus lini {{ l.nama }}?')">{% csrf_token %}<button class="btn link" type="submit">Hapus</button></form></td></tr>
+            <form class="inline" method="post" action="{% url 'master:lini_delete' l.pk %}" data-confirm="Hapus lini {{ l.nama }}?" data-confirm-text="Data lini ini akan dihapus." data-confirm-ok="Hapus" data-confirm-tone="danger">{% csrf_token %}<button class="btn link" type="submit">Hapus</button></form></td></tr>
       {% empty %}<tr><td colspan="3" class="muted">Belum ada lini.</td></tr>{% endfor %}</tbody>
     </table>
     <form method="post" class="card" style="margin-top:14px" novalidate>{% csrf_token %}
@@ -41,8 +41,8 @@
         <div><label for="{{ lini_form.nama.id_for_label }}">Nama Lini</label>{{ lini_form.nama }}</div>
         <div><label for="{{ lini_form.lokasi.id_for_label }}">Lokasi Lini Produksi</label>{{ lini_form.lokasi }}</div>
       </div>
-      {% for e in lini_form.nama.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
-      {% for e in lini_form.lokasi.errors %}<div class="field-error">⚠ {{ e }}</div>{% endfor %}
+      {% for e in lini_form.nama.errors %}<div class="field-error">{% include "partials/icon.html" with name="triangle-alert" %} {{ e }}</div>{% endfor %}
+      {% for e in lini_form.lokasi.errors %}<div class="field-error">{% include "partials/icon.html" with name="triangle-alert" %} {{ e }}</div>{% endfor %}
       <div class="actions" style="justify-content:flex-end">{% if lini_inst %}<a class="btn" href="{% url 'master:shift_lini' %}">Batal</a>{% endif %}<button class="btn primary" type="submit">Simpan</button></div>
     </form>
   </section>

@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="title"><i class="dot"></i> Import Manpower Data (Word / PDF)</h1>
 <p class="muted">Section 2700 / Haemo · unggah dokumen recruitment dari HR (.docx atau .pdf digital, maks. 10 MB).</p>
-{% if form.document.errors %}<div class="alert error" role="alert">⚠ {{ form.document.errors|join:" " }}</div>{% endif %}
+{% if form.document.errors %}<div class="alert error" role="alert">{% include "partials/icon.html" with name="triangle-alert" %} {{ form.document.errors|join:" " }}</div>{% endif %}
 {% include "partials/dropzone.html" %}
 <div class="actions"><a class="btn" href="{% url 'ai_parser:manpower_list' %}">Batal</a></div>
 {% endblock %}

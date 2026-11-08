@@ -17,9 +17,9 @@
   function submitFile(file) {
     if (busy) return;
     var ext = (file.name.split(".").pop() || "").toLowerCase();
-    if (ext !== "docx" && ext !== "pdf") { say("⚠ Hanya file Word (.docx) atau PDF (.pdf) yang diterima.", true); return; }
-    if (file.size === 0) { say("⚠ File kosong.", true); return; }
-    if (file.size > maxBytes) { say("⚠ Ukuran file maksimal " + (maxBytes / 1048576) + " MB.", true); return; }
+    if (ext !== "docx" && ext !== "pdf") { say("Hanya file Word (.docx) atau PDF (.pdf) yang diterima.", true); return; }
+    if (file.size === 0) { say("File kosong.", true); return; }
+    if (file.size > maxBytes) { say("Ukuran file maksimal " + (maxBytes / 1048576) + " MB.", true); return; }
     busy = true;
     zone.classList.add("busy");
     say("Membaca " + file.name + " … memisahkan karyawan per section", false);
@@ -28,7 +28,7 @@
 
   function pick(files) {
     if (!files || !files.length) return;
-    if (files.length > 1) { say("⚠ Unggah satu file saja per proses.", true); return; }
+    if (files.length > 1) { say("Unggah satu file saja per proses.", true); return; }
     try {
       var dt = new DataTransfer();
       dt.items.add(files[0]);

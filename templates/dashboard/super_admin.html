@@ -41,9 +41,9 @@
   if(!window.Chart) return;
   var h=JSON.parse(document.getElementById('d-harian').textContent), p=JSON.parse(document.getElementById('d-proses').textContent);
   new Chart(document.getElementById('chartHarian'),{type:'line',data:{labels:h.labels,datasets:[
-    {label:'Output',data:h.output,borderColor:'#1f6fd0',tension:.25},{label:'Reject',data:h.reject,borderColor:'#d9422f',tension:.25}]},
+    {label:'Output',data:h.output,borderColor:'#1D5FC4',backgroundColor:'#1D5FC4',tension:.25},{label:'Reject',data:h.reject,borderColor:'#B3261E',backgroundColor:'#B3261E',tension:.25}]},
     options:{responsive:true,maintainAspectRatio:false}});
-  new Chart(document.getElementById('chartProses'),{type:'bar',data:{labels:p.labels,datasets:[{label:'Output',data:p.output,backgroundColor:'#9aa9bd'}]},
+  new Chart(document.getElementById('chartProses'),{type:'bar',data:{labels:p.labels,datasets:[{label:'Output',data:p.output,backgroundColor:'#1D5FC4',borderRadius:6}]},
     options:{responsive:true,maintainAspectRatio:false}});
 })();
 </script>

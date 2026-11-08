@@ -114,8 +114,8 @@ class EvaluasiTests(Base):
 
     def test_ai_recommendation(self):
         r = self.client.get(self.url)
-        self.assertContains(r, "✔ Qualified")
-        self.assertContains(r, "✖ Belum qualified")
+        self.assertContains(r, "Qualified")
+        self.assertContains(r, "Belum qualified")
         self.assertContains(r, "Rekomendasi AI dievaluasi")
 
     def test_print_when_approved_creates_certificate_and_pdf(self):

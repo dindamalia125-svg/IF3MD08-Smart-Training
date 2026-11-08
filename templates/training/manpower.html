@@ -9,8 +9,8 @@
   <label for="teks">Tempel daftar manpower dari HR</label>
   <textarea id="teks" name="teks" rows="6" placeholder="Andi Pratama - TR-0142 - A&#10;Maya Putri - TR-0098 - B&#10;Rudi Hartono - TR-0177 - 3x2">{{ teks }}</textarea>
   <p class="muted">Kode shift yang dikenali: {{ shift_codes|join:", " }}</p>
-  {% if error %}<div class="alert error" role="alert">⚠ {{ error }}</div>{% endif %}
-  <div class="right"><button class="btn primary" type="submit" name="action" value="proses">✨ Proses dengan AI</button></div>
+  {% if error %}<div class="alert error" role="alert">{% include "partials/icon.html" with name="triangle-alert" %} {{ error }}</div>{% endif %}
+  <div class="right"><button class="btn primary" type="submit" name="action" value="proses">{% include "partials/icon.html" with name="sparkles" %} Proses dengan AI</button></div>
 </form>
 
 {% if rows %}
@@ -25,13 +25,13 @@
         <td><input type="text" name="nama" value="{{ r.nama }}" aria-label="Nama baris {{ forloop.counter }}"></td>
         <td><input type="text" name="emp_no" value="{{ r.emp_no }}" aria-label="Emp No. baris {{ forloop.counter }}"></td>
         <td><input type="text" name="shift" value="{{ r.shift }}" list="shift-codes" aria-label="Shift baris {{ forloop.counter }}"></td>
-        <td>{% if r.status == 'ok' %}<span class="badge ok">OK</span>{% elif r.status == 'tersimpan' %}<span class="badge ok">✔ Tersimpan</span>
-            {% else %}<span class="badge {% if r.status == 'duplikat' %}bad{% else %}warn{% endif %}">⚠ {{ r.pesan }}</span>{% endif %}</td>
+        <td>{% if r.status == 'ok' %}<span class="badge ok">OK</span>{% elif r.status == 'tersimpan' %}<span class="badge ok">Tersimpan</span>
+            {% else %}<span class="badge {% if r.status == 'duplikat' %}bad{% else %}warn{% endif %}">{{ r.pesan }}</span>{% endif %}</td>
       </tr>{% endfor %}</tbody>
   </table>
   <datalist id="shift-codes">{% for c in shift_codes %}<option value="{{ c }}">{% endfor %}</datalist>
   {% if saved is not None %}
-    <div class="alert success">✔ {{ saved }} baris berhasil disimpan{% if rejected %}, {{ rejected }} baris ditolak{% endif %}. Aktivitas tercatat di audit log.</div>
+    <div class="alert success">{% include "partials/icon.html" with name="circle-check" %} {{ saved }} baris berhasil disimpan{% if rejected %}, {{ rejected }} baris ditolak{% endif %}. Aktivitas tercatat di audit log.</div>
   {% else %}
     <div class="actions"><a class="btn" href="{% url 'training:manpower' %}">Batal</a><button class="btn primary" type="submit" name="action" value="simpan">Simpan Data</button></div>
     <p class="muted">Baris yang gagal diparsing atau memiliki Emp No. duplikat akan ditolak saat disimpan. Perbaiki isian lalu simpan.</p>

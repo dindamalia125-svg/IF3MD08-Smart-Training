@@ -44,8 +44,8 @@ document.querySelectorAll(".autosave").forEach(el=>{
         body:JSON.stringify({field:el.dataset.field,value:el.value})});
       const d=await r.json();
       if(!r.ok||!d.ok) throw new Error(d.error||"Gagal menyimpan");
-      last=el.value; status.textContent="✔ Tersimpan";
-    }catch(err){el.value=last; status.textContent="⚠ "+(err.message||"Gagal menyimpan");}
+      last=el.value; status.textContent="Tersimpan";
+    }catch(err){el.value=last; status.textContent=(err.message||"Gagal menyimpan");}
   });
 });
 </script>

@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}STA{% endblock %} · Smart Training Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
@@ -12,7 +14,7 @@
     <div class="logo">STA</div>
     {% if user.is_authenticated %}
     <details class="user">
-      <summary><span class="avatar"></span><span>{{ user.username }}<br>{{ user.get_role_display|upper }}</span></summary>
+      <summary><span class="avatar" aria-hidden="true"></span><span>{{ user.username }}<br>{{ user.get_role_display|upper }}</span></summary>
       <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="btn sm" type="submit">Keluar</button></form>
     </details>
     {% endif %}
@@ -21,11 +23,24 @@
   <nav class="tabs" aria-label="Menu utama">
     {% for n in nav_items %}<a href="{{ n.url }}" class="{% if n.active %}active{% endif %}">{{ n.label }}</a>{% endfor %}
   </nav>
-  <div class="greet"><b>Hi, {{ user.nama_tampil }}</b><span>🕗 {{ now|date:"h:i A" }} &nbsp;|&nbsp; {{ now|date:"l, d F Y" }}</span></div>
+  <div class="greet"><b>Hi, {{ user.nama_tampil }}</b><span>{% include "partials/icon.html" with name="clock" %} {{ now|date:"h:i A" }} &nbsp;|&nbsp; {{ now|date:"l, d F Y" }}</span></div>
   {% endif %}
   {% include "partials/messages.html" %}
   <main>{% block content %}{% endblock %}</main>
 </div>
+{% if nav_items %}
+<nav class="bottomnav" aria-label="Menu cepat">
+  {% for n in nav_items|slice:":3" %}<a href="{{ n.url }}" class="{% if n.active %}active{% endif %}"{% if n.active %} aria-current="page"{% endif %}>{% include "partials/navicon.html" with label=n.label %}<span>{{ n.label }}</span></a>{% endfor %}
+  <button type="button" data-menu-open aria-haspopup="dialog" aria-controls="menu-sheet">{% include "partials/icon.html" with name="menu" %}<span>Menu</span></button>
+</nav>
+<div class="modal-bd" id="menu-sheet" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Semua menu">
+    <ul class="sheet-links">{% for n in nav_items %}<li><a href="{{ n.url }}" class="{% if n.active %}active{% endif %}">{% include "partials/navicon.html" with label=n.label %} {{ n.label }}</a></li>{% endfor %}</ul>
+    <div class="sheet-actions"><button type="button" class="btn" data-menu-close>Tutup</button></div>
+  </div>
+</div>
+{% endif %}
+<script src="{% static 'js/ui.js' %}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -25,7 +25,7 @@
 </table>
 {% include "partials/pagination.html" with unit="aktivitas" %}
 {% else %}
-<div class="alert error" role="alert">⚠ Data tidak ditemukan — tidak ada aktivitas pada filter yang dipilih.</div>
+<div class="alert error" role="alert">{% include "partials/icon.html" with name="triangle-alert" %} Data tidak ditemukan — tidak ada aktivitas pada filter yang dipilih.</div>
 {% endif %}
 <div class="alert info">Catatan log bersifat permanen dan tidak dapat diubah.</div>
 {% endblock %}

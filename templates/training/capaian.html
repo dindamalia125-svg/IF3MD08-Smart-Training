@@ -22,9 +22,9 @@
       <div><label for="id_output">Output Konten</label><input id="id_output" type="number" name="output" min="0" value="{{ form.output.value|default_if_none:'' }}"></div>
       <div><label for="id_reject">Jumlah Reject</label><input id="id_reject" type="number" name="reject" min="0" value="{{ form.reject.value|default_if_none:'' }}"></div>
     </div>
-    {% if error %}<div class="field-error" role="alert" style="margin-top:12px">⚠ {{ error }}</div>{% endif %}
+    {% if error %}<div class="field-error" role="alert" style="margin-top:12px">{% include "partials/icon.html" with name="triangle-alert" %} {{ error }}</div>{% endif %}
     {% if konfirmasi_timpa %}
-      <div class="alert warning" role="alert">⚠ Capaian trainee pada tanggal dan proses ini sudah ada. Timpa data?
+      <div class="alert warning" role="alert">{% include "partials/icon.html" with name="triangle-alert" %} Capaian trainee pada tanggal dan proses ini sudah ada. Timpa data?
         <button class="btn sm primary" type="submit" name="timpa" value="1">Ya</button>
         <a class="btn sm" href="{% url 'training:capaian' %}">Batal</a></div>
     {% endif %}

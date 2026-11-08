@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="title"><i class="dot"></i> Penelusuran Trainee</h1>
 {% include "training/_search.html" %}
-{% if tidak_ditemukan %}<div class="alert error" role="alert">⚠ Data trainee tidak ditemukan. Periksa kembali Emp No. atau Nama yang diketik.</div>{% endif %}
+{% if tidak_ditemukan %}<div class="alert error" role="alert">{% include "partials/icon.html" with name="triangle-alert" %} Data trainee tidak ditemukan. Periksa kembali Emp No. atau Nama yang diketik.</div>{% endif %}
 {% if results %}
 <h2 class="sec"># {{ judul_hasil }}{% if q %} — pilih salah satu{% endif %}</h2>
 <table class="t">

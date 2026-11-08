@@ -14,11 +14,11 @@
     <label>Format File</label>
     <label style="font-weight:400;display:inline"><input type="radio" name="format" value="xlsx" {% if format == 'xlsx' %}checked{% endif %}> Excel (.xlsx)</label> &nbsp;
     <label style="font-weight:400;display:inline"><input type="radio" name="format" value="pdf" {% if format == 'pdf' %}checked{% endif %}> PDF</label>
-    {% if error %}<div class="alert error" role="alert" style="margin-top:14px">⚠ {{ error }}</div>{% endif %}
+    {% if error %}<div class="alert error" role="alert" style="margin-top:14px">{% include "partials/icon.html" with name="triangle-alert" %} {{ error }}</div>{% endif %}
     <div class="actions"><a class="btn" href="{% url 'reports:ekspor' %}">Batal</a><button class="btn primary" type="submit">Ekspor</button></div>
     {% if siap %}
-      <div class="alert success">✔ Laporan siap diunduh</div>
-      <div class="card" style="padding:10px 14px">📄 {{ filename }} &nbsp; <a class="btn sm primary" href="{% url 'reports:unduh' %}?{{ unduh_qs }}">Unduh</a></div>
+      <div class="alert success">{% include "partials/icon.html" with name="circle-check" %} Laporan siap diunduh</div>
+      <div class="card" style="padding:10px 14px">{% include "partials/icon.html" with name="file-text" %} {{ filename }} &nbsp; <a class="btn sm primary" href="{% url 'reports:unduh' %}?{{ unduh_qs }}">Unduh</a></div>
     {% endif %}
   </form>
   <div class="col">

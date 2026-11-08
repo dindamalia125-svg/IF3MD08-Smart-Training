@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Terjadi kesalahan{% endblock %}
+{% block content %}
+<div class="errpage"><span aria-hidden="true">{% include "partials/icon.html" with name="wifi-off" %}</span>
+<h1>Terjadi kesalahan</h1><p>Terjadi kesalahan jaringan. Coba lagi nanti.</p><a class="btn primary" href="">Coba Lagi</a></div>
+{% endblock %}
