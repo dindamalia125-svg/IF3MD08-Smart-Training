@@ -1,8 +1,10 @@
 """Parser dokumen recruitment Word (.docx) untuk Manpower section 2700 / Haemo.
 
 Pembagian tugas (sederhana dan aman):
-- AI (opsional) HANYA membantu mengenali header kolom yang tidak dikenal. AI tidak pernah
-  menerima data karyawan, hanya teks header, dan tidak menentukan apa yang disimpan.
+- Aturan membaca tabel (termasuk tabel bersarang dan tabel teks berpemisah tab/|) lebih dulu.
+- AI (opsional) membantu mengenali header kolom yang tidak dikenal (hanya teks header). Bila tidak
+  ada tabel yang bisa dibaca sama sekali, AI membaca seluruh isi dokumen secara otomatis
+  (`extract_rows_with_ai`) dan hasilnya tetap harus lolos validasi + konfirmasi preview.
 - Semua keputusan data (filter 2700 / Haemo, field wajib, format Emp No, duplikat) dibuat
   oleh aturan deterministik di file ini, lewat `validate_record`.
 """
@@ -12,15 +14,16 @@ import logging
 import re
 from datetime import date, datetime
 
+from django.conf import settings
 from docx import Document
 
-from .header_ai import FIELDS, map_headers_with_ai
+from .header_ai import FIELDS, extract_rows_with_ai, map_headers_with_ai
 
 logger = logging.getLogger(__name__)
 
 TARGET_DEPT_CODE = "2700"
 TARGET_DEPT_NAME = "haemo"
-HEADER_SCAN_ROWS = 3  # header boleh berada di 3 baris pertama tabel (mis. ada baris judul)
+HEADER_SCAN_ROWS = 8  # header boleh berada di 8 baris pertama tabel (mis. ada baris judul/logo)
 EMP_NO_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9\-]{2,29}$")
 DEPT_SEPARATOR = r"(?:\s*[/\-–—:|]\s*|\s+)"  # "2700 / Haemo", "2700-Haemo", "2700 Haemo"
 DEPT_RE = re.compile(rf"^\s*(\d+){DEPT_SEPARATOR}(.+?)\s*$")
@@ -172,7 +175,7 @@ def _header_map(cells: list[str], ai_mapper, warnings: list[str]):
         return None, ""
     labels = [clean(c) for c in cells]
     # hanya baris yang tampak seperti header (ada teks, bukan data angka murni)
-    if sum(1 for c in labels if c) < 3 or any(re.fullmatch(r"\d{4,}", c) for c in labels):
+    if len({c for c in labels if c}) < 3 or any(re.fullmatch(r"\d{4,}", c) for c in labels):
         return None, ""
     ai_result = ai_mapper(labels) or {}
     merged = list(mapping)
@@ -263,12 +266,61 @@ def build_result(raw_rows: list[dict], join_date, header_source: str, warnings: 
     }
 
 
-def parse_docx(file, ai_mapper="default") -> dict:
-    """Baca tabel recruitment. `file` boleh path atau file-like (UploadedFile).
+def _iter_tables(container, seen=None):
+    """Semua tabel pada dokumen, termasuk tabel di dalam sel (HR sering menempelkan email ke Word)."""
+    seen = set() if seen is None else seen
+    for table in container.tables:
+        if id(table._tbl) in seen:
+            continue
+        seen.add(id(table._tbl))
+        yield table
+        for row in table.rows:
+            for cell in row.cells:  # sel gabungan muncul berulang; `seen` mencegah pembacaan ganda
+                yield from _iter_tables(cell, seen)
 
-    ai_mapper: "default" = pakai AI bila ANTHROPIC_API_KEY ada; None = tanpa AI;
-    atau fungsi(labels) -> {indeks: field} (dipakai untuk tes).
+
+def _text_grids(doc) -> list[list[list[str]]]:
+    """Tabel 'palsu': baris paragraf berpemisah tab atau | (hasil tempel dari email/Excel)."""
+    grids, current = [], []
+    for p in doc.paragraphs:
+        text = p.text.strip()
+        cells = [clean(c) for c in re.split(r"\t+|\s*\|\s*", text)] if ("\t" in text or "|" in text) else []
+        if len([c for c in cells if c]) >= 3:
+            current.append(cells)
+        elif current:
+            grids.append(current)
+            current = []
+    if current:
+        grids.append(current)
+    return grids
+
+
+def document_text(doc, limit: int = 20000) -> str:
+    """Seluruh isi dokumen sebagai teks (paragraf + baris tabel) untuk dibaca AI."""
+    lines = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+    for table in _iter_tables(doc):
+        for row in table.rows:
+            cells = []
+            for cell in row.cells:
+                text = clean(cell.text)
+                if text and (not cells or cells[-1] != text):
+                    cells.append(text)
+            if cells:
+                lines.append(" | ".join(cells))
+    return "\n".join(lines)[:limit]
+
+
+def parse_docx(file, ai_mapper="default", ai_extractor="default") -> dict:
+    """Baca dokumen recruitment otomatis. `file` boleh path atau file-like (UploadedFile).
+
+    Urutan: (1) tabel Word (termasuk bersarang) -> (2) tabel teks berpemisah tab/| ->
+    (3) AI membaca seluruh dokumen bila (1) dan (2) tidak menemukan header.
+    ai_mapper: "default" = pakai AI bila ANTHROPIC_API_KEY ada; None = tanpa AI; atau fungsi(labels)
+    -> {indeks: field}. ai_extractor: "default" mengikuti ai_mapper; None = tanpa AI; atau
+    fungsi(teks) -> list baris mentah (dipakai untuk tes).
     """
+    if ai_extractor == "default":
+        ai_extractor = None if ai_mapper is None else extract_rows_with_ai
     if ai_mapper == "default":
         ai_mapper = map_headers_with_ai
     doc = Document(file)
@@ -278,11 +330,12 @@ def parse_docx(file, ai_mapper="default") -> dict:
     found_table = False
     header_source = "aturan"
 
-    for table in doc.tables:
-        rows = list(table.rows)
+    grids = [[[c.text for c in row.cells] for row in table.rows] for table in _iter_tables(doc)]
+    grids += _text_grids(doc)
+    for rows in grids:
         headers, start = None, 0
-        for idx, row in enumerate(rows[:HEADER_SCAN_ROWS]):
-            headers, source = _header_map([c.text for c in row.cells], ai_mapper, warnings)
+        for idx, cells in enumerate(rows[:HEADER_SCAN_ROWS]):
+            headers, source = _header_map(cells, ai_mapper, warnings)
             if headers:
                 start = idx + 1
                 if source == "AI":
@@ -292,15 +345,26 @@ def parse_docx(file, ai_mapper="default") -> dict:
             continue
         found_table = True
 
-        for row_number, row in enumerate(rows[start:], start=start + 1):
-            values = [clean(cell.text) for cell in row.cells]
+        for row_number, cells in enumerate(rows[start:], start=start + 1):
+            values = [clean(c) for c in cells]
             if not any(values):
                 continue
             raw = {name: values[i] for i, name in enumerate(headers) if name and i < len(values)}
             raw_rows.append({**raw, "source_row": row_number})
 
+    if not found_table and ai_extractor is not None:
+        text = document_text(doc)
+        if text.strip():
+            raw_rows = ai_extractor(text) or []
+            if raw_rows:
+                found_table, header_source = True, "AI"
+                warnings.append("Struktur tabel tidak dikenali oleh aturan, sehingga isi dokumen dibaca otomatis oleh AI. "
+                                "Periksa seluruh baris pada preview sebelum mengonfirmasi.")
+
     if not found_table:
+        hint = "" if ai_extractor is None or settings.ANTHROPIC_API_KEY else \
+            " Untuk dokumen tanpa tabel, aktifkan pembacaan AI dengan mengatur ANTHROPIC_API_KEY."
         raise ValueError(
-            "Tabel recruitment tidak ditemukan. Pastikan header berisi Emp. No, Employee Name, dan Sect/Dept."
+            "Tabel recruitment tidak ditemukan. Pastikan header berisi Emp. No, Employee Name, dan Sect/Dept." + hint
         )
     return build_result(raw_rows, join_date, header_source, warnings)

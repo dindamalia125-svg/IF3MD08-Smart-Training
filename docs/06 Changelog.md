@@ -14,3 +14,8 @@
 - Halaman Input Manpower (AI) dan Import Manpower: area drag & drop file Word (.docx) atau PDF digital (maks. 10 MB). File langsung diparsing, lalu preview menampilkan karyawan per section (2700 / Haemo diproses, section lain hanya ditampilkan dan tidak diimpor).
 - `ai_parser/pdf_parser.py` (pypdf) baru; `word_parser.build_result` dipakai bersama oleh jalur Word dan PDF (validasi, filter section, duplikasi sama). PDF scan, terenkripsi, atau rusak ditolak dengan pesan jelas. Tidak ada migrasi baru.
 
+
+
+## 2026-11-09
+- Input Manpower (AI): dokumen Word kini dibaca otomatis lebih andal. `parse_docx` membaca tabel bersarang, header hingga 8 baris pertama (baris judul/logo), dan tabel teks berpemisah tab/`|`. Bila tetap tidak ada tabel, AI (Claude) membaca seluruh isi dokumen (`header_ai.extract_rows_with_ai`) dan hasilnya tetap divalidasi aturan + dikonfirmasi di preview. Tanpa `ANTHROPIC_API_KEY`, pembacaan AI dilewati dan pesan error memberi petunjuk.
+- Status dropzone kini "AI membaca ... secara otomatis". Tes baru `AutoReadDocxTests`.
