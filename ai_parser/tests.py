@@ -512,3 +512,98 @@ class ViewTests(TestCase):
         self.assertEqual(r.status_code, 302)
         m.refresh_from_db()
         self.assertEqual(m.shift, "Normal")
+
+
+class AutoReadDocxTests(SimpleTestCase):
+    """Dokumen Word nyata (tabel bersarang, baris judul, teks tab) harus terbaca otomatis."""
+
+    def _save(self, doc):
+        buf = io.BytesIO()
+        doc.save(buf)
+        buf.seek(0)
+        return buf
+
+    def _fill(self, container, title_rows=0):
+        table = container.add_table(rows=0, cols=len(HEADERS))
+        for _ in range(title_rows):
+            cells = table.add_row().cells
+            cells[0].text = "NEW RECRUITMENT"
+            cells[0].merge(cells[-1])
+        for values in [HEADERS] + ROWS:
+            cells = table.add_row().cells
+            for cell, value in zip(cells, values):
+                cell.text = value
+        return table
+
+    def test_header_below_many_title_rows(self):
+        doc = Document()
+        self._fill(doc, title_rows=5)
+        with mock.patch.object(header_ai, "_call_claude") as call:
+            r = parse_docx(self._save(doc), ai_mapper=None)
+            call.assert_not_called()
+        self.assertEqual(r["summary"]["haemo_candidates"], 2)
+
+    def test_nested_table(self):
+        doc = Document()
+        outer = doc.add_table(rows=1, cols=1)
+        self._fill(outer.rows[0].cells[0])
+        r = parse_docx(self._save(doc), ai_mapper=None)
+        self.assertEqual(r["summary"]["total_detected"], 3)
+        self.assertEqual(r["summary"]["haemo_candidates"], 2)
+
+    def test_tab_separated_text(self):
+        doc = Document()
+        for values in [HEADERS] + ROWS:
+            doc.add_paragraph("\t".join(values))
+        r = parse_docx(self._save(doc), ai_mapper=None)
+        self.assertEqual(r["summary"]["haemo_candidates"], 2)
+
+    def test_ai_reads_document_without_table(self):
+        doc = Document()
+        doc.add_paragraph("Please add Alya Dzihni (98420) to Haemo 2700 and Andini (98421).")
+        fake = mock.Mock(return_value=[
+            {"employee_number": "98420", "employee_name": "Alya Dzihni", "department": "2700 / Haemo", "source_row": 1},
+            {"employee_number": "98421", "employee_name": "Andini", "department": "2700 / Haemo", "source_row": 2},
+            {"employee_number": "1", "employee_name": "Lain", "department": "1340 / Tech4", "source_row": 3},
+        ])
+        r = parse_docx(self._save(doc), ai_mapper=None, ai_extractor=fake)
+        fake.assert_called_once()
+        self.assertIn("98420", fake.call_args[0][0])  # teks dokumen sampai ke AI
+        self.assertEqual(r["summary"]["header_source"], "AI")
+        self.assertEqual(r["summary"]["haemo_candidates"], 2)
+        self.assertEqual(r["summary"]["other_departments"], 1)
+        self.assertTrue(any("dibaca otomatis oleh AI" in w for w in r["warnings"]))
+
+    def test_ai_output_still_validated(self):
+        doc = Document()
+        doc.add_paragraph("daftar karyawan baru")
+        bad = lambda text: [{"employee_number": "", "employee_name": "Tanpa Nomor", "department": "2700 / Haemo"}]
+        r = parse_docx(self._save(doc), ai_mapper=None, ai_extractor=bad)
+        self.assertEqual(r["summary"]["haemo_candidates"], 0)
+        self.assertEqual(r["summary"]["needs_review"], 1)
+
+    def test_no_table_and_ai_empty_raises(self):
+        doc = Document()
+        doc.add_paragraph("tidak ada tabel")
+        with self.assertRaisesMessage(ValueError, "Tabel recruitment tidak ditemukan"):
+            parse_docx(self._save(doc), ai_mapper=None, ai_extractor=lambda t: [])
+
+    @override_settings(ANTHROPIC_API_KEY="")
+    def test_extract_rows_no_key(self):
+        with mock.patch.object(header_ai, "_call_claude_extract") as call:
+            self.assertEqual(header_ai.extract_rows_with_ai("x"), [])
+            call.assert_not_called()
+
+    @override_settings(ANTHROPIC_API_KEY="k")
+    def test_extract_rows_parses_and_survives_errors(self):
+        raw = json.dumps([{"employee_number": 98420, "employee_name": "Alya", "department": "2700 / Haemo"}, "x"])
+        with mock.patch.object(header_ai, "_call_claude_extract", return_value=raw):
+            rows = header_ai.extract_rows_with_ai("teks")
+        self.assertEqual(rows, [{"employee_number": "98420", "employee_name": "Alya", "gender": "",
+                                 "department": "2700 / Haemo", "shift": "", "position": "", "status": "",
+                                 "remarks": "", "source_row": 1}])
+        for bad in (URLError("x"), TimeoutError()):
+            with mock.patch.object(header_ai, "_call_claude_extract", side_effect=bad):
+                self.assertEqual(header_ai.extract_rows_with_ai("teks"), [])
+        with mock.patch.object(header_ai, "_call_claude_extract", return_value="bukan json"):
+            self.assertEqual(header_ai.extract_rows_with_ai("teks"), [])

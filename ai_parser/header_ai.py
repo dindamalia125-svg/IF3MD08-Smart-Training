@@ -5,6 +5,10 @@ TIDAK ada nama atau nomor karyawan. Hasil AI hanya dipakai bila lolos pemeriksaa
 (field harus termasuk daftar FIELDS) dan tidak menimpa pengenalan berbasis aturan.
 Tanpa ANTHROPIC_API_KEY, atau bila panggilan gagal, fungsi mengembalikan {} dan
 parser tetap berjalan dengan aturan saja.
+
+Pengecualian: `extract_rows_with_ai` dipakai HANYA bila aturan tidak menemukan tabel sama sekali.
+Fungsi ini mengirim isi dokumen (termasuk nama & Emp No) ke API agar AI membaca dokumen otomatis.
+Hasilnya tetap divalidasi aturan deterministik dan harus dikonfirmasi pengguna di preview.
 """
 import json
 import logging
@@ -65,3 +69,49 @@ def map_headers_with_ai(labels):
     except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as exc:
         logger.warning("Pemetaan header oleh AI gagal (%s: %s); memakai aturan saja.", type(exc).__name__, exc)
         return {}
+
+
+ROW_KEYS = ("employee_number", "employee_name", "gender", "department", "shift", "position", "status", "remarks")
+MAX_AI_ROWS = 500
+
+
+def _call_claude_extract(text):
+    prompt = (
+        "Berikut isi dokumen recruitment karyawan (bisa berupa tabel, daftar, atau teks bebas). "
+        "Ekstrak SETIAP karyawan baru menjadi JSON array of object dengan kunci: "
+        f"{', '.join(ROW_KEYS)}. {FIELD_HELP} "
+        "Tulis department persis seperti di dokumen (mis. '2700 / Haemo'). Jangan mengarang data: "
+        "bagian yang tidak ada diisi string kosong. Abaikan baris judul/header/tanda tangan. "
+        "Balas HANYA JSON array.\n\n" + text
+    )
+    body = json.dumps({
+        "model": settings.ANTHROPIC_MODEL, "max_tokens": 8000,
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages", data=body, method="POST",
+        headers={"content-type": "application/json", "x-api-key": settings.ANTHROPIC_API_KEY,
+                 "anthropic-version": "2023-06-01"},
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read().decode())
+    out = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+    return re.sub(r"^```(?:json)?|```$", "", out.strip(), flags=re.M).strip()
+
+
+def extract_rows_with_ai(text):
+    """Teks dokumen -> list baris mentah (kunci ROW_KEYS + source_row). [] bila AI tidak tersedia/gagal."""
+    if not settings.ANTHROPIC_API_KEY or not text.strip():
+        return []
+    try:
+        items = json.loads(_call_claude_extract(text))
+        if not isinstance(items, list):
+            raise ValueError("Respons AI bukan array JSON")
+        rows = []
+        for number, item in enumerate(items[:MAX_AI_ROWS], start=1):
+            if isinstance(item, dict):
+                rows.append({**{k: str(item.get(k) or "").strip() for k in ROW_KEYS}, "source_row": number})
+        return rows
+    except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as exc:
+        logger.warning("Pembacaan dokumen oleh AI gagal (%s: %s).", type(exc).__name__, exc)
+        return []
