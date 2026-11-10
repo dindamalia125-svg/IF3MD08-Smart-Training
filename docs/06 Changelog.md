@@ -19,3 +19,6 @@
 ## 2026-11-09
 - Input Manpower (AI): dokumen Word kini dibaca otomatis lebih andal. `parse_docx` membaca tabel bersarang, header hingga 8 baris pertama (baris judul/logo), dan tabel teks berpemisah tab/`|`. Bila tetap tidak ada tabel, AI (Claude) membaca seluruh isi dokumen (`header_ai.extract_rows_with_ai`) dan hasilnya tetap divalidasi aturan + dikonfirmasi di preview. Tanpa `ANTHROPIC_API_KEY`, pembacaan AI dilewati dan pesan error memberi petunjuk.
 - Status dropzone kini "AI membaca ... secara otomatis". Tes baru `AutoReadDocxTests`.
+
+## 2026-11-10
+- Perbaikan pembacaan DOC (tanggal masuk karyawan baru): sebelumnya hanya kalimat persis "shall join <Bulan> <tgl> <tahun>" yang dikenali, sehingga "shall join **on** ...", "Date of commencement: 06/08/2026", "Tanggal masuk: 6 Agustus 2026", dll. menghasilkan DOC kosong. Kini `extract_join_date_from_text` membaca banyak frasa dan format (Inggris/Indonesia, angka, ISO), mencari di paragraf dan tabel, mendukung kolom DOC per baris, dan memakai AI (`find_join_date_with_ai`) bila aturan gagal dan `ANTHROPIC_API_KEY` ada.

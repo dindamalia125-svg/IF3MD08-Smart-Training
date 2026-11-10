@@ -601,9 +601,48 @@ class AutoReadDocxTests(SimpleTestCase):
             rows = header_ai.extract_rows_with_ai("teks")
         self.assertEqual(rows, [{"employee_number": "98420", "employee_name": "Alya", "gender": "",
                                  "department": "2700 / Haemo", "shift": "", "position": "", "status": "",
-                                 "remarks": "", "source_row": 1}])
+                                 "remarks": "", "doc": "", "source_row": 1}])
         for bad in (URLError("x"), TimeoutError()):
             with mock.patch.object(header_ai, "_call_claude_extract", side_effect=bad):
                 self.assertEqual(header_ai.extract_rows_with_ai("teks"), [])
         with mock.patch.object(header_ai, "_call_claude_extract", return_value="bukan json"):
             self.assertEqual(header_ai.extract_rows_with_ai("teks"), [])
+
+
+class JoinDateTests(SimpleTestCase):
+    def test_phrasing_variants(self):
+        from ai_parser.word_parser import extract_join_date_from_text as f
+        for text, expected in [
+            ("shall join on November 2, 2026", "2026-11-02"),
+            ("will join on 6 August 2026", "2026-08-06"),
+            ("Date of commencement: 06/08/2026", "2026-08-06"),
+            ("Tanggal masuk: 6 Agustus 2026", "2026-08-06"),
+            ("Joining date : 06-Aug-2026", "2026-08-06"),
+            ("will be joining us on Monday, 3rd Aug 2026", "2026-08-03"),
+            ("Sent: 1 Nov 2026. Hello", None),
+        ]:
+            self.assertEqual(f(text), expected, text)
+
+    def test_date_inside_table_and_doc_column(self):
+        headers = ["Emp. No", "Employee Name", "Sect/Dept", "DOC"]
+        doc = Document()
+        t = doc.add_table(rows=1, cols=4)
+        for c, h in zip(t.rows[0].cells, headers):
+            c.text = h
+        for vals in [("98420", "Alya", "2700 / Haemo", "06/08/2026"), ("98421", "Andini", "2700 / Haemo", "")]:
+            for c, v in zip(t.add_row().cells, vals):
+                c.text = v
+        doc.add_paragraph("The above staff shall join on 10 August 2026")
+        buf = io.BytesIO(); doc.save(buf); buf.seek(0)
+        r = parse_docx(buf, ai_mapper=None)
+        self.assertEqual([x["doc"] for x in r["accepted"]], ["2026-08-06", "2026-08-10"])  # kolom DOC > tanggal umum
+
+    def test_ai_finds_date_when_rules_fail(self):
+        buf = make_docx(join_text="Mohon diproses segera.")
+        r = parse_docx(buf, ai_mapper=lambda labels: {}, ai_extractor=None, ai_date=lambda text: "2026-08-06")
+        self.assertEqual(r["summary"]["join_date"], "2026-08-06")
+        self.assertTrue(any("DOC dibaca oleh AI" in w for w in r["warnings"]))
+
+    @override_settings(ANTHROPIC_API_KEY="")
+    def test_ai_date_no_key(self):
+        self.assertIsNone(header_ai.find_join_date_with_ai("teks"))

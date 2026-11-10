@@ -22,12 +22,13 @@ logger = logging.getLogger(__name__)
 
 FIELDS = (
     "employee_number", "employee_name", "gender", "department",
-    "shift", "position", "status", "remarks",
+    "shift", "position", "status", "remarks", "doc",
 )
 FIELD_HELP = (
     "employee_number = nomor karyawan (Emp No / NIK); employee_name = nama karyawan; gender = jenis kelamin; "
     "department = Sect/Dept (kode dan nama section, mis. '2700 / Haemo'); shift; position = jabatan; "
-    "status = status kepegawaian (kontrak/tetap); remarks = keterangan/replacement."
+    "status = status kepegawaian (kontrak/tetap); remarks = keterangan/replacement; "
+    "doc = DOC / date of commencement / tanggal masuk (tanggal mulai bekerja)."
 )
 
 
@@ -71,7 +72,7 @@ def map_headers_with_ai(labels):
         return {}
 
 
-ROW_KEYS = ("employee_number", "employee_name", "gender", "department", "shift", "position", "status", "remarks")
+ROW_KEYS = ("employee_number", "employee_name", "gender", "department", "shift", "position", "status", "remarks", "doc")
 MAX_AI_ROWS = 500
 
 
@@ -115,3 +116,31 @@ def extract_rows_with_ai(text):
     except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as exc:
         logger.warning("Pembacaan dokumen oleh AI gagal (%s: %s).", type(exc).__name__, exc)
         return []
+
+
+def find_join_date_with_ai(text):
+    """Teks dokumen -> tanggal masuk karyawan (DOC) berformat YYYY-MM-DD, atau None."""
+    if not settings.ANTHROPIC_API_KEY or not text.strip():
+        return None
+    prompt = (
+        "Dari isi dokumen recruitment berikut, tentukan tanggal karyawan baru mulai bergabung/bekerja "
+        "(DOC, date of commencement, 'shall join', tanggal masuk). Abaikan tanggal pengiriman email/surat. "
+        'Balas HANYA JSON {"doc": "YYYY-MM-DD"} atau {"doc": ""} bila tidak ada.\n\n' + text[:6000]
+    )
+    body = json.dumps({"model": settings.ANTHROPIC_MODEL, "max_tokens": 100,
+                       "messages": [{"role": "user", "content": prompt}]}).encode()
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages", data=body, method="POST",
+        headers={"content-type": "application/json", "x-api-key": settings.ANTHROPIC_API_KEY,
+                 "anthropic-version": "2023-06-01"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode())
+        out = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+        value = str(json.loads(re.sub(r"^```(?:json)?|```$", "", out.strip(), flags=re.M).strip()).get("doc", ""))
+        from datetime import date
+        return date.fromisoformat(value).isoformat() if value else None
+    except (urllib.error.URLError, TimeoutError, ValueError, KeyError, AttributeError) as exc:
+        logger.warning("Pencarian tanggal DOC oleh AI gagal (%s: %s).", type(exc).__name__, exc)
+        return None

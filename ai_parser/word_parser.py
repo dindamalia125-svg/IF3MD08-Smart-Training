@@ -12,12 +12,12 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import date, datetime
+from datetime import date
 
 from django.conf import settings
 from docx import Document
 
-from .header_ai import FIELDS, extract_rows_with_ai, map_headers_with_ai
+from .header_ai import FIELDS, extract_rows_with_ai, find_join_date_with_ai, map_headers_with_ai
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,13 @@ ALIASES = {
     "jabatan": "position",
     "employmentstatus": "status",
     "status": "status",
+    "doc": "doc",
+    "dateofcommencement": "doc",
+    "commencementdate": "doc",
+    "joindate": "doc",
+    "joiningdate": "doc",
+    "tanggalmasuk": "doc",
+    "tanggalbergabung": "doc",
     "replacement": "remarks",
     "remarks": "remarks",
     "keterangan": "remarks",
@@ -69,27 +76,61 @@ def clean(value) -> str:
 
 
 # ----------------------------------------------------------------- tanggal DOC
+MONTHS = {
+    "jan": 1, "january": 1, "januari": 1, "feb": 2, "february": 2, "februari": 2, "mar": 3, "march": 3, "maret": 3,
+    "apr": 4, "april": 4, "may": 5, "mei": 5, "jun": 6, "june": 6, "juni": 6, "jul": 7, "july": 7, "juli": 7,
+    "aug": 8, "august": 8, "agu": 8, "agt": 8, "agustus": 8, "sep": 9, "sept": 9, "september": 9,
+    "oct": 10, "october": 10, "okt": 10, "oktober": 10, "nov": 11, "november": 11, "nop": 11, "nopember": 11,
+    "dec": 12, "december": 12, "des": 12, "desember": 12,
+}
+_MONTH = "|".join(sorted(MONTHS, key=len, reverse=True))
+_ORD = r"(?:st|nd|rd|th)?"
+DATE_PATTERNS = [  # (regex, urutan grup)
+    (re.compile(rf"\b(\d{{1,2}}){_ORD}[\s\-/.]*({_MONTH})\.?[\s\-/.,]*(\d{{4}})\b", re.I), "dmy"),   # 6 August 2026, 06-Aug-2026
+    (re.compile(rf"\b({_MONTH})\.?[\s\-/.]*(\d{{1,2}}){_ORD}[\s,\-/.]+(\d{{4}})\b", re.I), "mdy"),  # August 06th 2026
+    (re.compile(r"\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b"), "ymd"),                                 # 2026-08-06
+    (re.compile(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b"), "dmy_num"),                              # 06/08/2026 (hari/bulan)
+]
+JOIN_KEYS = re.compile(
+    r"(?:shall\s+join|will\s+join|will\s+be\s+joining|to\s+join|joining|join(?:ed)?(?:\s+date)?|"
+    r"date\s+of\s+commencement|commencement(?:\s+date)?|commence|start(?:ing)?\s+(?:date|on)|effective|"
+    r"\bDOC\b|tanggal\s+(?:masuk|bergabung|mulai)|bergabung|mulai\s+bekerja|masuk\s+kerja)", re.I)
+
+
+def _to_date(kind, g):
+    try:
+        if kind == "dmy":
+            return date(int(g[2]), MONTHS[g[1].casefold()], int(g[0]))
+        if kind == "mdy":
+            return date(int(g[2]), MONTHS[g[0].casefold()], int(g[1]))
+        if kind == "ymd":
+            return date(int(g[0]), int(g[1]), int(g[2]))
+        return date(int(g[2]), int(g[1]), int(g[0]))
+    except (ValueError, KeyError):
+        return None
+
+
+def parse_date(text: str):
+    """Tanggal pertama pada teks (ISO) dari berbagai format Inggris/Indonesia; None bila tidak ada."""
+    best = None
+    for regex, kind in DATE_PATTERNS:
+        for m in regex.finditer(text or ""):
+            d = _to_date(kind, m.groups())
+            if d and (best is None or m.start() < best[0]):
+                best = (m.start(), d)
+    return best[1].isoformat() if best else None
+
+
 def extract_join_date(doc: Document):
-    return extract_join_date_from_text("\n".join(p.text for p in doc.paragraphs))
+    return extract_join_date_from_text(document_text(doc))
 
 
 def extract_join_date_from_text(text: str):
-    keys = r"(?:shall\s+join|will\s+join|join\s+date|date\s+of\s+commencement|commencement\s+date)"
-    patterns = [
-        rf"\b{keys}\s*[:\-]?\s*([A-Za-z]+\s+\d{{1,2}}(?:st|nd|rd|th)?\s*,?\s+\d{{4}})",
-        rf"\b{keys}\s*[:\-]?\s*(\d{{1,2}}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{{4}})",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text, re.I)
-        if not match:
-            continue
-        raw = re.sub(r"(\d+)(st|nd|rd|th)", r"\1", match.group(1), flags=re.I).replace(",", "")
-        raw = re.sub(r"\s+", " ", raw)
-        for fmt in ("%B %d %Y", "%d %B %Y", "%b %d %Y", "%d %b %Y"):
-            try:
-                return datetime.strptime(raw, fmt).date().isoformat()
-            except ValueError:
-                pass
+    """Cari tanggal masuk (DOC) di dekat kata kunci seperti 'shall join', 'joining date', 'DOC', 'tanggal masuk'."""
+    for key in JOIN_KEYS.finditer(text or ""):
+        found = parse_date(text[key.end(): key.end() + 70])
+        if found:
+            return found
     return None
 
 
@@ -222,7 +263,7 @@ def build_result(raw_rows: list[dict], join_date, header_source: str, warnings: 
             "position": raw.get("position", ""),
             "status": raw.get("status", ""),
             "remarks": raw.get("remarks", ""),
-            "doc": join_date,
+            "doc": parse_date(raw.get("doc", "")) or join_date,
             "source_row": raw.get("source_row"),
         }
         if code and code != TARGET_DEPT_CODE:  # departemen lain: tidak diimpor
@@ -240,7 +281,7 @@ def build_result(raw_rows: list[dict], join_date, header_source: str, warnings: 
         else:
             accepted.append(record)
 
-    if not join_date:
+    if not join_date and not any(parse_date(r.get("doc", "")) for r in raw_rows):
         warnings.append("Tanggal DOC tidak ditemukan di dokumen; isi pada preview bila diperlukan.")
     ordered = sorted(sections.values(), key=lambda g: (not g["is_target"], g["label"]))
     for g in ordered:
@@ -310,7 +351,7 @@ def document_text(doc, limit: int = 20000) -> str:
     return "\n".join(lines)[:limit]
 
 
-def parse_docx(file, ai_mapper="default", ai_extractor="default") -> dict:
+def parse_docx(file, ai_mapper="default", ai_extractor="default", ai_date="default") -> dict:
     """Baca dokumen recruitment otomatis. `file` boleh path atau file-like (UploadedFile).
 
     Urutan: (1) tabel Word (termasuk bersarang) -> (2) tabel teks berpemisah tab/| ->
@@ -321,6 +362,8 @@ def parse_docx(file, ai_mapper="default", ai_extractor="default") -> dict:
     """
     if ai_extractor == "default":
         ai_extractor = None if ai_mapper is None else extract_rows_with_ai
+    if ai_date == "default":
+        ai_date = None if ai_mapper is None else find_join_date_with_ai
     if ai_mapper == "default":
         ai_mapper = map_headers_with_ai
     doc = Document(file)
@@ -360,6 +403,11 @@ def parse_docx(file, ai_mapper="default", ai_extractor="default") -> dict:
                 found_table, header_source = True, "AI"
                 warnings.append("Struktur tabel tidak dikenali oleh aturan, sehingga isi dokumen dibaca otomatis oleh AI. "
                                 "Periksa seluruh baris pada preview sebelum mengonfirmasi.")
+
+    if not join_date and ai_date is not None and found_table:
+        join_date = ai_date(document_text(doc))  # aturan gagal menemukan DOC -> AI membaca dokumen
+        if join_date and not any(parse_date(r.get("doc", "")) for r in raw_rows):
+            warnings.append("Tanggal DOC dibaca oleh AI; periksa pada preview.")
 
     if not found_table:
         hint = "" if ai_extractor is None or settings.ANTHROPIC_API_KEY else \
