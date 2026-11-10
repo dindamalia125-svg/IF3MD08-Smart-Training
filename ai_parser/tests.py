@@ -646,3 +646,39 @@ class JoinDateTests(SimpleTestCase):
     @override_settings(ANTHROPIC_API_KEY="")
     def test_ai_date_no_key(self):
         self.assertIsNone(header_ai.find_join_date_with_ai("teks"))
+
+
+class NewRecruitmentSubjectTests(SimpleTestCase):
+    """Format HR nyata: tanggal DOC ada pada Subject / kalimat 'shall join' di atas tabel."""
+
+    def _letter(self, *lines):
+        doc = Document()
+        for line in lines:
+            doc.add_paragraph(line)
+        table = doc.add_table(rows=1, cols=len(HEADERS))
+        for i, h in enumerate(HEADERS):
+            table.rows[0].cells[i].text = h
+        for row in ROWS:
+            cells = table.add_row().cells
+            for i, v in enumerate(row):
+                cells[i].text = v
+        buf = io.BytesIO()
+        doc.save(buf)
+        buf.seek(0)
+        return buf
+
+    def test_doc_from_subject_only(self):
+        buf = self._letter("September 03rd 2026", "Ref.\t:   02 / Job September / 2026",
+                           "Subject\t:   New Recruitment on September 03rd 2026",
+                           "Please find list of new recruitment for as follows:")
+        r = parse_docx(buf, ai_mapper=None)
+        self.assertEqual(r["summary"]["join_date"], "2026-09-03")
+        self.assertTrue(all(x["doc"] == "2026-09-03" for x in r["accepted"]))
+
+    def test_shall_join_with_company_name(self):
+        buf = self._letter("Subject : New Recruitment", "The above staff shall join PT. JMS Batam on September 03rd 2026")
+        self.assertEqual(parse_docx(buf, ai_mapper=None)["summary"]["join_date"], "2026-09-03")
+
+    def test_join_phrase_beats_subject(self):
+        buf = self._letter("Subject : New Recruitment on September 01st 2026", "The above staff shall join on September 03rd 2026")
+        self.assertEqual(parse_docx(buf, ai_mapper=None)["summary"]["join_date"], "2026-09-03")
