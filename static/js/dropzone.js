@@ -22,7 +22,7 @@
     if (file.size > maxBytes) { say("Ukuran file maksimal " + (maxBytes / 1048576) + " MB.", true); return; }
     busy = true;
     zone.classList.add("busy");
-    say("AI membaca " + file.name + " secara otomatis … memisahkan karyawan per section", false);
+    say("Membaca " + file.name + " … memisahkan karyawan per section", false);
     form.submit();
   }
 
