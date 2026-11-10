@@ -95,6 +95,8 @@ JOIN_KEYS = re.compile(
     r"(?:shall\s+join|will\s+join|will\s+be\s+joining|to\s+join|joining|join(?:ed)?(?:\s+date)?|"
     r"date\s+of\s+commencement|commencement(?:\s+date)?|commence|start(?:ing)?\s+(?:date|on)|effective|"
     r"\bDOC\b|tanggal\s+(?:masuk|bergabung|mulai)|bergabung|mulai\s+bekerja|masuk\s+kerja)", re.I)
+# Cadangan: tanggal pada keterangan "Subject : New Recruitment on September 03rd 2026".
+RECRUIT_KEYS = re.compile(r"new\s+recruitment|rekrut(?:men)?\s+baru|penerimaan\s+karyawan\s+baru", re.I)
 
 
 def _to_date(kind, g):
@@ -127,10 +129,11 @@ def extract_join_date(doc: Document):
 
 def extract_join_date_from_text(text: str):
     """Cari tanggal masuk (DOC) di dekat kata kunci seperti 'shall join', 'joining date', 'DOC', 'tanggal masuk'."""
-    for key in JOIN_KEYS.finditer(text or ""):
-        found = parse_date(text[key.end(): key.end() + 70])
-        if found:
-            return found
+    for keys in (JOIN_KEYS, RECRUIT_KEYS):  # frasa "join/DOC" didahulukan, lalu keterangan "New Recruitment"
+        for key in keys.finditer(text or ""):
+            found = parse_date(text[key.end(): key.end() + 70])
+            if found:
+                return found
     return None
 
 
